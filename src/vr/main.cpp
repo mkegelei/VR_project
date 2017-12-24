@@ -34,6 +34,9 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// lighting
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 int main(int argc, char *argv[])
 {
     if(argc > 1){
@@ -98,7 +101,7 @@ int main(int argc, char *argv[])
     ss << dir << "/resources/objects/" << objName;
     Model ourModel(ss.str());
 
-    
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -129,6 +132,9 @@ int main(int argc, char *argv[])
         glm::mat4 view = camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
+        ourShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        ourShader.setVec3("lightPos", lightPos);
+        ourShader.setVec3("viewPos", camera.Position);
 
         // render the loaded model
         glm::mat4 model;
@@ -171,7 +177,7 @@ void processInput(GLFWwindow *window)
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
+    // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
@@ -202,4 +208,3 @@ void scroll_callback(GLFWwindow* /*window*/, double /*xoffset*/, double yoffset)
 {
     camera.ProcessMouseScroll(yoffset);
 }
-
