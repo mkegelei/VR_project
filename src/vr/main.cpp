@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
         ourShader.use();
 
         ourShader.setVec3("viewPos", camera.Position);
-        ourShader.setFloat("material.shininess", 32.0f);
+        ourShader.setFloat("material.shininess", 16.0f);
 
         // directional light
         ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);

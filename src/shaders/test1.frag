@@ -79,6 +79,8 @@ void main()
     result += CalcFlashLight(flashLight, norm, FragPos, viewDir, kEnergyConservation);
 
     FragColor = vec4(result, 1.0);
+    float gamma = 1.0;
+    FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
 }
 
 // calculates the color when using a directional light.
