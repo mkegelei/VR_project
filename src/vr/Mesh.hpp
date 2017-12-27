@@ -92,7 +92,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap) 
+    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap, unsigned int flashShadowMap) 
     {
         // bind appropriate textures
         unsigned int diffuseNr  = 1;
@@ -126,6 +126,9 @@ public:
         glActiveTexture(GL_TEXTURE0 + textures.size() + 1);
         glUniform1i(glGetUniformLocation(shader.ID, "pointShadowMap"), textures.size()+1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMap);
+        glActiveTexture(GL_TEXTURE0 + textures.size() + 2);
+        glUniform1i(glGetUniformLocation(shader.ID, "flashShadowMap"), textures.size()+2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashShadowMap);
         
         // draw mesh
         glBindVertexArray(VAO);

@@ -45,10 +45,10 @@ public:
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
-    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap)
+    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap, unsigned int flashShadowMap)
     {
         for(unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].DrawWithShadow(shader, dirShadowMap, pointShadowMap);
+            meshes[i].DrawWithShadow(shader, dirShadowMap, pointShadowMap, flashShadowMap);
     }
 
     void DrawForDepth()

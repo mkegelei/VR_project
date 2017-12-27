@@ -50,6 +50,7 @@ in vec4 FragPosLightSpace;
 uniform float far_plane;
 uniform sampler2D dirShadowMap;
 uniform samplerCube pointShadowMap;
+uniform samplerCube flashShadowMap;
 
 #define NR_POINT_LIGHTS 1
 
@@ -75,6 +76,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
 vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation);
 float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light);
 float PointShadowCalculation(vec3 fragPos, PointLight light);
+float FlashShadowCalculation(vec3 fragPos, FlashLight light);
 
 void main()
 {
@@ -92,7 +94,7 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir, kEnergyConservation);    
     // phase 3: flash light
-    //result += CalcFlashLight(flashLight, norm, FragPos, viewDir, kEnergyConservation);
+    result += CalcFlashLight(flashLight, norm, FragPos, viewDir, kEnergyConservation);
     
     FragColor = vec4(result, 1.0);
     float gamma = 1.0;
@@ -165,7 +167,9 @@ vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
-    return (ambient + diffuse + specular);
+    //float shadow = FlashShadowCalculation(fragPos, light);
+    float shadow = 0.0f;
+    return (ambient + (1.0 - shadow) * (diffuse + specular));
 }
 
 float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light)
@@ -218,6 +222,33 @@ float PointShadowCalculation(vec3 fragPos, PointLight light)
     for(int i = 0; i < samples; ++i)
     {
         float closestDepth = texture(pointShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        closestDepth *= far_plane;   // undo mapping [0;1]
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+    shadow /= float(samples);
+        
+    // display closestDepth as debug (to visualize depth cubemap)
+    // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);    
+        
+    return shadow;
+}
+
+float FlashShadowCalculation(vec3 fragPos, FlashLight light)
+{
+    // get vector between fragment position and light position
+    vec3 fragToLight = fragPos - light.position;
+    // now get current linear depth as the length between the fragment and light position
+    float currentDepth = length(fragToLight);
+    
+    float shadow = 0.0;
+    float bias = 0.15;
+    int samples = 20;
+    float viewDistance = length(viewPos - fragPos);
+    float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
+    for(int i = 0; i < samples; ++i)
+    {
+        float closestDepth = texture(flashShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
         closestDepth *= far_plane;   // undo mapping [0;1]
         if(currentDepth - bias > closestDepth)
             shadow += 1.0;
