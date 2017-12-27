@@ -115,18 +115,26 @@ int main(int argc, char *argv[])
     ss2 << dir << "/src/shaders/depthShader.frag";
     Shader depthShader(ss1.str().c_str(), ss2.str().c_str());
 
+    stringstream ss3;
+    ss1.str("");
+    ss2.str("");
+    ss1 << dir << "/src/shaders/depthCubeShader.vert";
+    ss2 << dir << "/src/shaders/depthCubeShader.frag";
+    ss3 << dir << "/src/shaders/depthCubeShader.geom";
+    Shader depthCubeShader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+
     // load models
     // -----------
-    stringstream ss3;
-    ss3 << dir << "resources/objects/" << objName;
-    Model ourModel(ss3.str());
+    ss1.str("");
+    ss1 << dir << "resources/objects/" << objName;
+    Model ourModel(ss1.str());
 
     // load additionnal textures
     // -------------------------
-    stringstream ss4;
-    ss4 << dir << "resources/textures/wood.png";
+    ss1.str("");
+    ss1 << dir << "resources/textures/wood.png";
     //unsigned int emissionMap = loadTexture(ss4.str().c_str());
-    unsigned int woodTexture = loadTexture(ss4.str().c_str());
+    unsigned int woodTexture = loadTexture(ss1.str().c_str());
 
 
     // Floor
@@ -171,11 +179,32 @@ int main(int argc, char *argv[])
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
     // attach depth texture as FBO's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // configure cube depth map FBO
+    unsigned int depthCubeMapFBO;
+    glGenFramebuffers(1, &depthCubeMapFBO);
+    // create depth cubemap texture
+    unsigned int depthCubemap;
+    glGenTextures(1, &depthCubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+    for (unsigned int i = 0; i < 6; ++i)
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -204,13 +233,25 @@ int main(int argc, char *argv[])
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
+        // directionnal light shadows
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 7.5f;
+        float near_plane = 1.0f, far_plane = 25.0f;
         //lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene
         lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
         lightView = glm::lookAt(dirLightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
+        
+        // point light shadows
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
+        std::vector<glm::mat4> shadowTransforms;
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
+
         // render scene from light's point of view
         depthShader.use();
         depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
@@ -223,14 +264,38 @@ int main(int argc, char *argv[])
         
         glm::mat4 model;
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
         depthShader.setMat4("model", model);
+        glCullFace(GL_FRONT);
         ourModel.DrawForDepth();
+        glCullFace(GL_BACK);
         model = glm::mat4();
         depthShader.setMat4("model", model);
         glBindVertexArray(planeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // point shadows rendering
+        depthCubeShader.use();
+        for (unsigned int i = 0; i < 6; ++i)
+            depthCubeShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
+        depthCubeShader.setFloat("far_plane", far_plane);
+        depthCubeShader.setVec3("lightPos", lightPos.Position);
+        
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
+        depthCubeShader.setMat4("model", model);
+        ourModel.DrawForDepth();
+        model = glm::mat4();
+        depthCubeShader.setMat4("model", model);
+        glBindVertexArray(planeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 2. render scene as normal using the generated depth/shadow map  
@@ -244,6 +309,7 @@ int main(int argc, char *argv[])
         ourShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         ourShader.setVec3("viewPos", camera.Position);
         ourShader.setFloat("material.shininess", 16.0f);
+        ourShader.setFloat("far_plane", far_plane);
 
         // directional light
         ourShader.setVec3("dirLight.direction", -dirLightPos);
@@ -279,22 +345,25 @@ int main(int argc, char *argv[])
         // render the loaded model
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
 
         glm::mat3 normalCorrection = glm::mat3(transpose(inverse(model)));
         ourShader.setMat3("normalCorrection", normalCorrection);
 
-        ourModel.DrawWithShadow(ourShader, depthMap);
+        ourModel.DrawWithShadow(ourShader, depthMap, depthCubemap);
 
         ourShader.setInt("material.texture_diffuse1", 0);
         ourShader.setInt("material.texture_specular1", 0);
-        ourShader.setInt("shadowMap", 1);
+        ourShader.setInt("dirShadowMap", 1);
+        ourShader.setInt("pointShadowMap", 2);
         ourShader.setFloat("material.shininess", 2.0f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
         model = glm::mat4();
         ourShader.setMat4("model", model);
         glBindVertexArray(planeVAO);

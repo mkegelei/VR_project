@@ -92,7 +92,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void DrawWithShadow(Shader shader, unsigned int shadowMap) 
+    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap) 
     {
         // bind appropriate textures
         unsigned int diffuseNr  = 1;
@@ -119,10 +119,13 @@ public:
             // and finally bind the texture
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
         }
-        //add shadow map
+        //add shadow maps
         glActiveTexture(GL_TEXTURE0 + textures.size());
-        glUniform1i(glGetUniformLocation(shader.ID, "shadowMap"), textures.size());
-        glBindTexture(GL_TEXTURE_2D, shadowMap);
+        glUniform1i(glGetUniformLocation(shader.ID, "dirShadowMap"), textures.size());
+        glBindTexture(GL_TEXTURE_2D, dirShadowMap);
+        glActiveTexture(GL_TEXTURE0 + textures.size() + 1);
+        glUniform1i(glGetUniformLocation(shader.ID, "pointShadowMap"), textures.size()+1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMap);
         
         // draw mesh
         glBindVertexArray(VAO);
