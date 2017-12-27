@@ -45,6 +45,17 @@ public:
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
+    void DrawWithShadow(Shader shader, unsigned int shadowMap)
+    {
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].DrawWithShadow(shader, shadowMap);
+    }
+
+    void DrawForDepth()
+    {
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].DrawForDepth();
+    }
     
 private:
     /*  Functions   */
