@@ -61,8 +61,8 @@ class Circuit
 public:
 
   Circuit() {
-    int num_points = 10;
-    float points[num_points*3] = {
+    const int num_points = 10;
+    float points[(const int)(num_points*3)] = {
       5.0, 4.0, 1.0,
       3.0, 3.0, 1.0,
       2.0, 1.0, 1.0,
@@ -93,7 +93,7 @@ public:
 
     // Need to add control points to ensure the gradient is the same.
     this->controlPoints.push_back(controls[0]);
-    for ( int i = 1; i < controls.size() - 2; i+=2 ){
+    for (unsigned int i = 1; i < controls.size() - 2; i+=2 ){
       this->controlPoints.push_back(controls[i]);
       this->controlPoints.push_back(controls[i+1]);
   		this->controlPoints.push_back(center(controls[i+1], controls[i+2]));
@@ -108,7 +108,7 @@ public:
     this->controlPoints.push_back(p);
     this->controlPoints.push_back(start);
     cout << "Control points (" << this->controlPoints.size() << ") :" << endl << flush;
-    for (int i = 0; i < this->controlPoints.size(); i++) {
+    for (unsigned int i = 0; i < this->controlPoints.size(); i++) {
       cout << "P" << i << " (" << this->controlPoints[i].x << ", " << this->controlPoints[i].y << ", " << this->controlPoints[i].z << ")" << endl;
     }
 
@@ -139,7 +139,7 @@ public:
     vector<point> getPoints()
     {
       vector<point> drawingPoints;
-      for(int i = 0; i < this->controlPoints.size() - 3; i+=3)
+      for(unsigned int i = 0; i < this->controlPoints.size() - 3; i+=3)
       {
         point p0 = this->controlPoints[i];
         point p1 = this->controlPoints[i + 1];
@@ -169,7 +169,7 @@ public:
     void setup() {
       vector<point> points = this->getPoints();
       float vertices[points.size()*3];
-      for (int i = 0; i < points.size(); i++) {
+      for (unsigned int i = 0; i < points.size(); i++) {
         vertices[i*3] = points[i].x;
         vertices[i*3+1] = points[i].y;
         vertices[i*3+2] = points[i].z;

@@ -114,31 +114,14 @@ int main(int argc, char *argv[])
     Shader ourShader = createShader("test1.vert", "test1.frag");
 
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
-
-    ss1.str("");
-    ss2.str("");
-    ss1 << dir << "/src/shaders/circuit.vert";
-    ss2 << dir << "/src/shaders/circuit.frag";
-    cout << ss1.str().c_str() << endl;
-    Shader circuitShader(ss1.str().c_str(), ss2.str().c_str());
-
-    
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
 
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
-    stringstream ss1;
-    stringstream ss2;
-    ss1.str("");
-    ss1.clear();
-    ss2.str("");
-    ss2.clear();
-    ss1 << dir << "/src/shaders/circuit.vert";
-    ss2 << dir << "/src/shaders/circuit.frag";
-    cout << ss1.str().c_str() << endl;
-    Shader circuitShader(ss1.str().c_str(), ss2.str().c_str());
+    
+    Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
     stringstream ss;
@@ -146,7 +129,8 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
 
-    Circuit circuit = Circuit();
+    //Circuit circuit = Circuit();
+    
     // load additionnal textures
     // -------------------------
     ss.str("");
@@ -164,8 +148,6 @@ int main(int argc, char *argv[])
 
     // configure cube depth map FBO for flashlight
     FlashLight flashLight = *(new FlashLight(depthCubeShader, &camera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f))));
-
-    Circuit circuit = Circuit();
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -238,19 +220,6 @@ int main(int argc, char *argv[])
 
         ourModel.DrawWithShadow(ourShader, dirLight.depthMap.map, pointLight.depthMap.map, flashLight.depthMap.map);
 
-        circuitShader.use();
-       // view/projection transformations
-        circuitShader.setMat4("projection", projection);
-        circuitShader.setMat4("view", view);
-        circuitShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
-        circuitShader.setVec3("lightPos", lightPos);
-        circuitShader.setVec3("viewPos", camera.Position);
-
-        // render the loaded model
-        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitShader.setMat4("model", model);
-        circuit.Draw();
-
         // Draw floor
         ourShader.setInt("material.texture_diffuse1", 0);
         ourShader.setInt("material.texture_specular1", 0);
@@ -278,7 +247,10 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
         //renderQuad();
-
+        
+        // circuit
+        // -------
+        /*
         circuitShader.use();
         // view/projection transformations
         circuitShader.setMat4("projection", projection);
@@ -288,7 +260,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
-        circuit.Draw();
+        circuit.Draw();*/
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
