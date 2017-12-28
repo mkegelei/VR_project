@@ -11,7 +11,7 @@
 #include <Shader.hpp>
 #include <Camera.hpp>
 #include <Model.hpp>
-
+#include <Circuit.hpp>
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     else{
         dir = "";
     }
+
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -95,13 +96,22 @@ int main(int argc, char *argv[])
     ss2 << dir << "/src/shaders/test1.frag";
     Shader ourShader(ss1.str().c_str(), ss2.str().c_str());
 
+    ss1.str("");
+    ss1.clear();
+    ss2.str("");
+    ss2.clear();
+    ss1 << dir << "/src/shaders/circuit.vert";
+    ss2 << dir << "/src/shaders/circuit.frag";
+    cout << ss1.str().c_str() << endl;
+    Shader circuitShader(ss1.str().c_str(), ss2.str().c_str());
+
     // load models
     // -----------
     stringstream ss;
     ss << dir << "/resources/objects/" << objName;
     Model ourModel(ss.str());
 
-
+    Circuit circuit = Circuit();
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -142,6 +152,20 @@ int main(int argc, char *argv[])
         model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f)); // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
+
+
+        circuitShader.use();
+        // view/projection transformations
+        circuitShader.setMat4("projection", projection);
+        circuitShader.setMat4("view", view);
+        circuitShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        circuitShader.setVec3("lightPos", lightPos);
+        circuitShader.setVec3("viewPos", camera.Position);
+
+        // render the loaded model
+        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitShader.setMat4("model", model);
+        circuit.Draw();
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
