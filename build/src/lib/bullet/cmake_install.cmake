@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Install script for directory: /home/panda-cool/openGL/VR_project/src/lib/bullet
+=======
+# Install script for directory: /home/lucas/VR_project/src/lib/bullet
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -32,6 +36,7 @@ if(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
   set(CMAKE_INSTALL_SO_NO_EXE "1")
 endif()
 
+<<<<<<< HEAD
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/bullet.pc")
 endif()
@@ -40,12 +45,26 @@ if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/bullet" TYPE FILE FILES
     "/home/panda-cool/openGL/VR_project/src/lib/bullet/UseBullet.cmake"
     "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/BulletConfig.cmake"
+=======
+if("${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/lucas/VR_project/build/src/lib/bullet/bullet.pc")
+endif()
+
+if("${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/bullet" TYPE FILE FILES
+    "/home/lucas/VR_project/src/lib/bullet/UseBullet.cmake"
+    "/home/lucas/VR_project/build/src/lib/bullet/BulletConfig.cmake"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
     )
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+<<<<<<< HEAD
   include("/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/cmake_install.cmake")
+=======
+  include("/home/lucas/VR_project/build/src/lib/bullet/src/cmake_install.cmake")
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 endif()
 

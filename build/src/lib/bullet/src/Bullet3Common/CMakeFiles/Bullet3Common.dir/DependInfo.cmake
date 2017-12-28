@@ -4,9 +4,15 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+<<<<<<< HEAD
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3AlignedAllocator.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3Logging.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3Vector3.o"
+=======
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3AlignedAllocator.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3Logging.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Common/CMakeFiles/Bullet3Common.dir/b3Vector3.o"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

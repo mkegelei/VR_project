@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+=======
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 #IncludeRegexScan: ^.*$
 
@@ -6,9 +10,15 @@
 
 #IncludeRegexTransform: 
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/clew/clew.c
 clew.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/clew/clew.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/clew/clew.c
+clew.h
+/home/lucas/VR_project/src/lib/bullet/src/clew/clew.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 windows.h
 -
 dlfcn.h
@@ -16,7 +26,11 @@ dlfcn.h
 stdlib.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/clew/clew.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/clew/clew.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 AvailabilityMacros.h
 -
 stdint.h

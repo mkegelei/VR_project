@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+=======
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 #IncludeRegexScan: ^.*$
 
@@ -1162,6 +1166,7 @@ glm/gtc/matrix_transform.hpp
 vector
 -
 
+<<<<<<< HEAD
 ../src/vr/DepthMap.hpp
 glad/glad.h
 -
@@ -1185,6 +1190,13 @@ Shader.hpp
 -
 vector
 -
+=======
+../src/vr/Circuit.hpp
+vector
+-
+Shader.hpp
+-
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 ../src/vr/Mesh.hpp
 glad/glad.h
@@ -1231,8 +1243,11 @@ sstream
 -
 iostream
 -
+<<<<<<< HEAD
 exception
 -
+=======
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 map
 -
 vector
@@ -1252,7 +1267,11 @@ sstream
 iostream
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/vr/main.cpp
+=======
+/home/lucas/VR_project/src/vr/main.cpp
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 glad/glad.h
 -
 GLFW/glfw3.h
@@ -1271,9 +1290,13 @@ Camera.hpp
 -
 Model.hpp
 -
+<<<<<<< HEAD
 DepthMap.hpp
 -
 Light.hpp
+=======
+Circuit.hpp
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 -
 iostream
 -

@@ -4,6 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+<<<<<<< HEAD
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btAlignedAllocator.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btAlignedAllocator.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btConvexHull.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btConvexHull.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btConvexHullComputer.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btConvexHullComputer.o"
@@ -13,6 +14,17 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btSerializer.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btSerializer.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btThreads.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btThreads.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/LinearMath/btVector3.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btVector3.o"
+=======
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btAlignedAllocator.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btAlignedAllocator.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btConvexHull.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btConvexHull.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btConvexHullComputer.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btConvexHullComputer.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btGeometryUtil.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btGeometryUtil.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btPolarDecomposition.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btPolarDecomposition.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btQuickprof.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btQuickprof.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btSerializer.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btSerializer.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btThreads.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btThreads.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/LinearMath/btVector3.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/LinearMath/CMakeFiles/LinearMath.dir/btVector3.o"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

@@ -4,11 +4,19 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+<<<<<<< HEAD
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3DynamicBvh.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3DynamicBvh.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3DynamicBvhBroadphase.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3DynamicBvhBroadphase.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3OverlappingPairCache.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3OverlappingPairCache.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Collision/NarrowPhaseCollision/b3ConvexUtility.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/NarrowPhaseCollision/b3ConvexUtility.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Collision/NarrowPhaseCollision/b3CpuNarrowPhase.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/NarrowPhaseCollision/b3CpuNarrowPhase.o"
+=======
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3DynamicBvh.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3DynamicBvh.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3DynamicBvhBroadphase.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3DynamicBvhBroadphase.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Collision/BroadPhaseCollision/b3OverlappingPairCache.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/BroadPhaseCollision/b3OverlappingPairCache.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Collision/NarrowPhaseCollision/b3ConvexUtility.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/NarrowPhaseCollision/b3ConvexUtility.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Collision/NarrowPhaseCollision/b3CpuNarrowPhase.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Collision/CMakeFiles/Bullet3Collision.dir/NarrowPhaseCollision/b3CpuNarrowPhase.o"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+=======
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 #IncludeRegexScan: ^.*$
 
@@ -6,9 +10,15 @@
 
 #IncludeRegexTransform: 
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.cpp
 b3AlignedAllocator.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.cpp
+b3AlignedAllocator.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 malloc.h
 -
 stdlib.h
@@ -16,6 +26,7 @@ stdlib.h
 stdio.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
 b3Scalar.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
@@ -23,6 +34,15 @@ b3Scalar.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.cpp
 b3Logging.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
+b3Scalar.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
+
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.cpp
+b3Logging.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stdio.h
 -
 stdarg.h
@@ -30,6 +50,7 @@ stdarg.h
 windows.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
 
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3MinMax.h
@@ -37,6 +58,15 @@ b3Scalar.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
 
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
+
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3MinMax.h
+b3Scalar.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
+
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 math.h
 -
 stdlib.h
@@ -44,7 +74,11 @@ stdlib.h
 float.h
 -
 b3Logging.h
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Logging.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 ppcintrinsics.h
 -
 emmintrin.h
@@ -78,9 +112,15 @@ assert.h
 arm_neon.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.cpp
 b3Vector3.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.cpp
+b3Vector3.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stdint.h
 -
 emmintrin.h
@@ -88,6 +128,7 @@ emmintrin.h
 arm_neon.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.h
 b3Scalar.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
@@ -95,4 +136,13 @@ b3MinMax.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3MinMax.h
 b3AlignedAllocator.h
 /home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
+=======
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Vector3.h
+b3Scalar.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3Scalar.h
+b3MinMax.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3MinMax.h
+b3AlignedAllocator.h
+/home/lucas/VR_project/src/lib/bullet/src/Bullet3Common/b3AlignedAllocator.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 

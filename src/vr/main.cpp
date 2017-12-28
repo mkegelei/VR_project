@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
     else{
         dir = "";
     }
+
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -113,6 +114,15 @@ int main(int argc, char *argv[])
     Shader ourShader = createShader("test1.vert", "test1.frag");
 
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
+
+    ss1.str("");
+    ss2.str("");
+    ss1 << dir << "/src/shaders/circuit.vert";
+    ss2 << dir << "/src/shaders/circuit.frag";
+    cout << ss1.str().c_str() << endl;
+    Shader circuitShader(ss1.str().c_str(), ss2.str().c_str());
+
+    
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
 
@@ -136,6 +146,7 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
 
+    Circuit circuit = Circuit();
     // load additionnal textures
     // -------------------------
     ss.str("");
@@ -155,6 +166,7 @@ int main(int argc, char *argv[])
     FlashLight flashLight = *(new FlashLight(depthCubeShader, &camera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f))));
 
     Circuit circuit = Circuit();
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -189,7 +201,7 @@ int main(int argc, char *argv[])
         // point shadows rendering for flashlight
         renderDepthMap(&flashLight);
 
-        // 2. render scene as normal using the generated depth/shadow map  
+        // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -266,6 +278,18 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
         //renderQuad();
+
+        circuitShader.use();
+        // view/projection transformations
+        circuitShader.setMat4("projection", projection);
+        circuitShader.setMat4("view", view);
+
+        // render the loaded model
+        model = glm::mat4();
+        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitShader.setMat4("model", model);
+        circuit.Draw();
+
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

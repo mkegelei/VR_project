@@ -4,12 +4,21 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+<<<<<<< HEAD
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3FixedConstraint.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3FixedConstraint.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3Generic6DofConstraint.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3Generic6DofConstraint.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3PgsJacobiSolver.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3PgsJacobiSolver.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3Point2PointConstraint.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3Point2PointConstraint.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3TypedConstraint.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3TypedConstraint.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Dynamics/b3CpuRigidBodyPipeline.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/b3CpuRigidBodyPipeline.o"
+=======
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3FixedConstraint.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3FixedConstraint.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3Generic6DofConstraint.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3Generic6DofConstraint.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3PgsJacobiSolver.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3PgsJacobiSolver.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3Point2PointConstraint.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3Point2PointConstraint.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/ConstraintSolver/b3TypedConstraint.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/ConstraintSolver/b3TypedConstraint.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Dynamics/b3CpuRigidBodyPipeline.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Dynamics/CMakeFiles/Bullet3Dynamics.dir/b3CpuRigidBodyPipeline.o"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+=======
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 #IncludeRegexScan: ^.*$
 
@@ -10,6 +14,7 @@
 zconf.h
 ../src/lib/assimp/code/../contrib/zlib/zconf.h
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/ConvertUTF/ConvertUTF.c
 ConvertUTF.h
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/ConvertUTF/ConvertUTF.h
@@ -31,6 +36,29 @@ ioapi.h
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/crypt.h
 
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/ioapi.c
+=======
+/home/lucas/VR_project/src/lib/assimp/contrib/ConvertUTF/ConvertUTF.c
+ConvertUTF.h
+/home/lucas/VR_project/src/lib/assimp/contrib/ConvertUTF/ConvertUTF.h
+stdio.h
+-
+
+/home/lucas/VR_project/src/lib/assimp/contrib/ConvertUTF/ConvertUTF.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/./ioapi.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/./unzip.h
+zlib.h
+-
+../zlib/zlib.h
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/zlib/zlib.h
+ioapi.h
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/./ioapi.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/crypt.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/ioapi.c
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stdio.h
 -
 stdlib.h
@@ -40,6 +68,7 @@ string.h
 zlib.h
 -
 ../zlib/zlib.h
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/zlib/zlib.h
 ioapi.h
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/ioapi.h
@@ -47,6 +76,15 @@ ioapi.h
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/ioapi.h
 
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/unzip.c
+=======
+/home/lucas/VR_project/src/lib/assimp/contrib/zlib/zlib.h
+ioapi.h
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/ioapi.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/ioapi.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/unzip.c
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stdio.h
 -
 stdlib.h
@@ -54,7 +92,11 @@ stdlib.h
 string.h
 -
 ./unzip.h
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/./unzip.h
+=======
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/./unzip.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stddef.h
 -
 string.h
@@ -64,9 +106,17 @@ stdlib.h
 errno.h
 -
 crypt.h
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/unzip/crypt.h
 
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/zlib/zlib.h
 zconf.h
 /home/panda-cool/openGL/VR_project/src/lib/assimp/contrib/zlib/zconf.h
+=======
+/home/lucas/VR_project/src/lib/assimp/contrib/unzip/crypt.h
+
+/home/lucas/VR_project/src/lib/assimp/contrib/zlib/zlib.h
+zconf.h
+/home/lucas/VR_project/src/lib/assimp/contrib/zlib/zconf.h
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+=======
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 #IncludeRegexScan: ^.*$
 
@@ -34,7 +38,11 @@ stdint.h
 inttypes.h
 -
 
+<<<<<<< HEAD
 /home/panda-cool/openGL/VR_project/src/lib/glad/src/glad.c
+=======
+/home/lucas/VR_project/src/lib/glad/src/glad.c
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 stdio.h
 -
 string.h

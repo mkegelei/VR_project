@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 /usr/bin/c++    -Wall -Wextra -Wpedantic -std=c++11   CMakeFiles/vr.dir/src/vr/main.cpp.o CMakeFiles/vr.dir/src/lib/glad/src/glad.c.o  -o vr/vr -rdynamic src/lib/assimp/code/libassimp.a src/lib/glfw/src/libglfw3.a -ldl src/lib/bullet/src/BulletDynamics/libBulletDynamics.a src/lib/bullet/src/BulletCollision/libBulletCollision.a src/lib/bullet/src/LinearMath/libLinearMath.a -lz -lrt -lm -ldl -lX11 -lpthread -lXrandr -lXinerama -lXxf86vm -lXcursor 
+=======
+/usr/bin/c++   -Wall -Wextra -Wpedantic -std=c++11  -rdynamic CMakeFiles/vr.dir/src/vr/main.cpp.o CMakeFiles/vr.dir/src/lib/glad/src/glad.c.o  -o vr/vr src/lib/assimp/code/libassimp.a src/lib/glfw/src/libglfw3.a -ldl src/lib/bullet/src/BulletDynamics/libBulletDynamics.a src/lib/bullet/src/BulletCollision/libBulletCollision.a src/lib/bullet/src/LinearMath/libLinearMath.a -lz -lrt -lm -ldl -lX11 -lpthread -lXrandr -lXinerama -lXxf86vm -lXcursor 
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43

@@ -1,6 +1,7 @@
 #version 330 core
 out vec4 FragColor;
 
+<<<<<<< HEAD
 in vec3 Normal;
 in vec3 FragPos;
 in vec2 TexCoords;
@@ -32,3 +33,14 @@ void main()
     vec3 result = (ambient + diffuse + specular);
     FragColor = vec4(result, 1.0)  * texture(texture_diffuse1, TexCoords);
 }
+=======
+in vec2 TexCoords;
+
+uniform sampler2D texture_diffuse1;
+
+void main()
+{    
+    FragColor = texture(texture_diffuse1, TexCoords);
+}
+
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Install script for directory: /home/panda-cool/openGL/VR_project/src/lib/bullet/src/BulletInverseDynamics
+=======
+# Install script for directory: /home/lucas/VR_project/src/lib/bullet/src/BulletInverseDynamics
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -32,6 +36,7 @@ if(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
   set(CMAKE_INSTALL_SO_NO_EXE "1")
 endif()
 
+<<<<<<< HEAD
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/BulletInverseDynamics/libBulletInverseDynamics.a")
 endif()
@@ -42,5 +47,17 @@ endif()
 
 if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/bullet/BulletInverseDynamics" TYPE FILE FILES "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/BulletInverseDynamics/../btBulletCollisionCommon.h")
+=======
+if("${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/lucas/VR_project/build/src/lib/bullet/src/BulletInverseDynamics/libBulletInverseDynamics.a")
+endif()
+
+if("${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/bullet" TYPE DIRECTORY FILES "/home/lucas/VR_project/src/lib/bullet/src/BulletInverseDynamics" FILES_MATCHING REGEX "/[^/]*\\.h$" REGEX "/\\.svn$" EXCLUDE REGEX "/CMakeFiles$" EXCLUDE)
+endif()
+
+if("${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/bullet/BulletInverseDynamics" TYPE FILE FILES "/home/lucas/VR_project/src/lib/bullet/src/BulletInverseDynamics/../btBulletCollisionCommon.h")
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 endif()
 

@@ -4,8 +4,13 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+<<<<<<< HEAD
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Geometry/b3ConvexHullComputer.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Geometry/CMakeFiles/Bullet3Geometry.dir/b3ConvexHullComputer.o"
   "/home/panda-cool/openGL/VR_project/src/lib/bullet/src/Bullet3Geometry/b3GeometryUtil.cpp" "/home/panda-cool/openGL/VR_project/build/src/lib/bullet/src/Bullet3Geometry/CMakeFiles/Bullet3Geometry.dir/b3GeometryUtil.o"
+=======
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Geometry/b3ConvexHullComputer.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Geometry/CMakeFiles/Bullet3Geometry.dir/b3ConvexHullComputer.o"
+  "/home/lucas/VR_project/src/lib/bullet/src/Bullet3Geometry/b3GeometryUtil.cpp" "/home/lucas/VR_project/build/src/lib/bullet/src/Bullet3Geometry/CMakeFiles/Bullet3Geometry.dir/b3GeometryUtil.o"
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

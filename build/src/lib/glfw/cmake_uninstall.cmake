@@ -1,9 +1,17 @@
 
+<<<<<<< HEAD
 if (NOT EXISTS "/home/panda-cool/openGL/VR_project/build/src/lib/glfw/install_manifest.txt")
   message(FATAL_ERROR "Cannot find install manifest: \"/home/panda-cool/openGL/VR_project/build/src/lib/glfw/install_manifest.txt\"")
 endif()
 
 file(READ "/home/panda-cool/openGL/VR_project/build/src/lib/glfw/install_manifest.txt" files)
+=======
+if (NOT EXISTS "/home/lucas/VR_project/build/src/lib/glfw/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: \"/home/lucas/VR_project/build/src/lib/glfw/install_manifest.txt\"")
+endif()
+
+file(READ "/home/lucas/VR_project/build/src/lib/glfw/install_manifest.txt" files)
+>>>>>>> 1e57215b089641099e79fd8f7b0b1f408357cc43
 string(REGEX REPLACE "\n" ";" files "${files}")
 
 foreach (file ${files})
