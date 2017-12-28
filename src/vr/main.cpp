@@ -13,6 +13,7 @@
 #include <Model.hpp>
 #include <DepthMap.hpp>
 #include <Light.hpp>
+#include <Circuit.hpp>
 
 #include <iostream>
 
@@ -109,11 +110,6 @@ int main(int argc, char *argv[])
 
     // build and compile shaders
     // -------------------------
-    /*stringstream ss1;
-    stringstream ss2;
-    ss1 << dir << "/src/shaders/test1.vert";
-    ss2 << dir << "/src/shaders/test1.frag";
-    Shader ourShader(ss1.str().c_str(), ss2.str().c_str());*/
     Shader ourShader = createShader("test1.vert", "test1.frag");
 
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
@@ -123,7 +119,16 @@ int main(int argc, char *argv[])
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
-
+    stringstream ss1;
+    stringstream ss2;
+    ss1.str("");
+    ss1.clear();
+    ss2.str("");
+    ss2.clear();
+    ss1 << dir << "/src/shaders/circuit.vert";
+    ss2 << dir << "/src/shaders/circuit.frag";
+    cout << ss1.str().c_str() << endl;
+    Shader circuitShader(ss1.str().c_str(), ss2.str().c_str());
     // load models
     // -----------
     stringstream ss;
@@ -142,13 +147,14 @@ int main(int argc, char *argv[])
     // ------
     // configure depth map FBO
     DirLight dirLight = *(new DirLight(depthShader, dirLightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), near_plane, far_plane));
-    //DepthMap depthMap = *(new SimpleDepthMap(1024, 1024));
+    
     // configure cube depth map FBO
     PointLight pointLight = *(new PointLight(depthCubeShader, &lightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f));
 
     // configure cube depth map FBO for flashlight
     FlashLight flashLight = *(new FlashLight(depthCubeShader, &camera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f))));
 
+    Circuit circuit = Circuit();
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -219,6 +225,19 @@ int main(int argc, char *argv[])
         ourShader.setMat3("normalCorrection", normalCorrection);
 
         ourModel.DrawWithShadow(ourShader, dirLight.depthMap.map, pointLight.depthMap.map, flashLight.depthMap.map);
+
+        circuitShader.use();
+       // view/projection transformations
+        circuitShader.setMat4("projection", projection);
+        circuitShader.setMat4("view", view);
+        circuitShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        circuitShader.setVec3("lightPos", lightPos);
+        circuitShader.setVec3("viewPos", camera.Position);
+
+        // render the loaded model
+        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitShader.setMat4("model", model);
+        circuit.Draw();
 
         // Draw floor
         ourShader.setInt("material.texture_diffuse1", 0);
