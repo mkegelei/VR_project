@@ -11,21 +11,35 @@
 #include <Shader.hpp>
 #include <Camera.hpp>
 #include <Model.hpp>
+#include <DepthMap.hpp>
+#include <Light.hpp>
 
 #include <iostream>
 
+// Prototypes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
+Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+void renderDepthMap(DirLight* light);
+void renderDepthMap(PointLight* light);
+void renderDepthMap(FlashLight* light);
+void renderSceneForDepth(Shader shader);
+void renderFloor();
 void renderQuad();
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
+const unsigned int SHADOW_WIDTH = 1024;
+const unsigned int SHADOW_HEIGHT = 1024;
+const float near_plane = 1.0f;
+const float far_plane = 25.0f;
 const char* dir;
 const char* objName;
+
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
@@ -36,12 +50,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-//VAO
-unsigned int planeVAO;
-
 // lighting
 Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
 glm::vec3 dirLightPos(-2.0f, 4.0f, -1.0f);
+
+//models
+Model ourModel;
 
 int main(int argc, char *argv[])
 {
@@ -95,141 +109,46 @@ int main(int argc, char *argv[])
 
     // build and compile shaders
     // -------------------------
-    stringstream ss1;
+    /*stringstream ss1;
     stringstream ss2;
     ss1 << dir << "/src/shaders/test1.vert";
     ss2 << dir << "/src/shaders/test1.frag";
-    Shader ourShader(ss1.str().c_str(), ss2.str().c_str());
+    Shader ourShader(ss1.str().c_str(), ss2.str().c_str());*/
+    Shader ourShader = createShader("test1.vert", "test1.frag");
 
-    ss1.str("");
-    ss2.str("");
-    ss1 << dir << "/src/shaders/debugDepth.vert";
-    ss2 << dir << "/src/shaders/debugDepth.frag";
-    Shader debugDepth(ss1.str().c_str(), ss2.str().c_str());
+    Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
 
-    ss1.str("");
-    ss2.str("");
-    ss1 << dir << "/src/shaders/depthShader.vert";
-    ss2 << dir << "/src/shaders/depthShader.frag";
-    Shader depthShader(ss1.str().c_str(), ss2.str().c_str());
+    Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
-    stringstream ss3;
-    ss1.str("");
-    ss2.str("");
-    ss1 << dir << "/src/shaders/depthCubeShader.vert";
-    ss2 << dir << "/src/shaders/depthCubeShader.frag";
-    ss3 << dir << "/src/shaders/depthCubeShader.geom";
-    Shader depthCubeShader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+    Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
     // load models
     // -----------
-    ss1.str("");
-    ss1 << dir << "resources/objects/" << objName;
-    Model ourModel(ss1.str());
+    stringstream ss;
+    ss.str("");
+    ss << dir << "resources/objects/" << objName;
+    ourModel = *(new Model(ss.str()));
 
     // load additionnal textures
     // -------------------------
-    ss1.str("");
-    ss1 << dir << "resources/textures/wood.png";
+    ss.str("");
+    ss << dir << "resources/textures/wood.png";
+    unsigned int woodTexture = loadTexture(ss.str().c_str());
     //unsigned int emissionMap = loadTexture(ss4.str().c_str());
-    unsigned int woodTexture = loadTexture(ss1.str().c_str());
-
-
-    // Floor
-    // -----
-    float planeVertices[] = {
-        // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
-    };
-    // plane VAO
-    unsigned int planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-    glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glBindVertexArray(0);
 
     // Shadow
     // ------
     // configure depth map FBO
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
-    // create depth texture
-    unsigned int depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    DirLight dirLight = *(new DirLight(depthShader, dirLightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), near_plane, far_plane));
+    //DepthMap depthMap = *(new SimpleDepthMap(1024, 1024));
     // configure cube depth map FBO
-    unsigned int depthCubeMapFBO;
-    glGenFramebuffers(1, &depthCubeMapFBO);
-    // create depth cubemap texture
-    unsigned int depthCubemap;
-    glGenTextures(1, &depthCubemap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
-    for (unsigned int i = 0; i < 6; ++i)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    PointLight pointLight = *(new PointLight(depthCubeShader, &lightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f));
 
     // configure cube depth map FBO for flashlight
-    unsigned int depthCubeMapFBO2;
-    glGenFramebuffers(1, &depthCubeMapFBO2);
-    // create depth cubemap texture
-    unsigned int depthCubemap2;
-    glGenTextures(1, &depthCubemap2);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap2);
-    for (unsigned int i = 0; i < 6; ++i)
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO2);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap2, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+    FlashLight flashLight = *(new FlashLight(depthCubeShader, &camera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f))));
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -254,100 +173,15 @@ int main(int argc, char *argv[])
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
-        // directionnal light shadows
-        glm::mat4 lightProjection, lightView;
-        glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 25.0f;
-        //lightProjection = glm::perspective(glm::radians(45.0f), (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        lightView = glm::lookAt(dirLightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-        lightSpaceMatrix = lightProjection * lightView;
         
-        // point light shadows
-        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
-        std::vector<glm::mat4> shadowTransforms;
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPos.Position, lightPos.Position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-
-        // point light shadows flashlight
-        glm::mat4 shadowProj2 = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, far_plane);
-        std::vector<glm::mat4> shadowTransforms2;
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)));
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-        shadowTransforms2.push_back(shadowProj2 * glm::lookAt(camera.Position, camera.Position + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)));
-
         // render scene from light's point of view
-        depthShader.use();
-        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
-
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, woodTexture);
-        
-        glm::mat4 model;
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
-        depthShader.setMat4("model", model);
-        glCullFace(GL_FRONT);
-        ourModel.DrawForDepth();
-        glCullFace(GL_BACK);
-        model = glm::mat4();
-        depthShader.setMat4("model", model);
-        glBindVertexArray(planeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        renderDepthMap(&dirLight);
 
         // point shadows rendering
-        depthCubeShader.use();
-        for (unsigned int i = 0; i < 6; ++i)
-            depthCubeShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
-        depthCubeShader.setFloat("far_plane", far_plane);
-        depthCubeShader.setVec3("lightPos", lightPos.Position);
-        
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
-        depthCubeShader.setMat4("model", model);
-        ourModel.DrawForDepth();
-        model = glm::mat4();
-        depthCubeShader.setMat4("model", model);
-        glBindVertexArray(planeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+        renderDepthMap(&pointLight);
+    
         // point shadows rendering for flashlight
-        for (unsigned int i = 0; i < 6; ++i)
-            depthCubeShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms2[i]);
-        depthCubeShader.setVec3("lightPos", camera.Position);
-        
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthCubeMapFBO2);
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
-        depthCubeShader.setMat4("model", model);
-        ourModel.DrawForDepth();
-        model = glm::mat4();
-        depthCubeShader.setMat4("model", model);
-        glBindVertexArray(planeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        renderDepthMap(&flashLight);
 
         // 2. render scene as normal using the generated depth/shadow map  
         // --------------------------------------------------------------
@@ -357,36 +191,18 @@ int main(int argc, char *argv[])
         // don't forget to enable shader before setting uniforms
         ourShader.use();
 
-        ourShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
         ourShader.setVec3("viewPos", camera.Position);
         ourShader.setFloat("material.shininess", 16.0f);
         ourShader.setFloat("far_plane", far_plane);
 
         // directional light
-        ourShader.setVec3("dirLight.direction", -dirLightPos);
-        ourShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-        ourShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        ourShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        dirLight.addToShader(ourShader);
+
         // point light 1
-        ourShader.setVec3("pointLights[0].position", lightPos.Position);
-        ourShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        ourShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        ourShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setFloat("pointLights[0].constant", 1.0f);
-        ourShader.setFloat("pointLights[0].linear", 0.09);
-        ourShader.setFloat("pointLights[0].quadratic", 0.032);
+        pointLight.addToShader(ourShader);
         
         // flashLight
-        ourShader.setVec3("flashLight.position", camera.Position);
-        ourShader.setVec3("flashLight.direction", camera.Front);
-        ourShader.setVec3("flashLight.ambient", 0.0f, 0.0f, 0.0f);
-        ourShader.setVec3("flashLight.diffuse", 1.0f, 1.0f, 1.0f);
-        ourShader.setVec3("flashLight.specular", 1.0f, 1.0f, 1.0f);
-        ourShader.setFloat("flashLight.constant", 1.0f);
-        ourShader.setFloat("flashLight.linear", 0.09);
-        ourShader.setFloat("flashLight.quadratic", 0.032);
-        ourShader.setFloat("flashLight.cutOff", glm::cos(glm::radians(12.5f)));
-        ourShader.setFloat("flashLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+        flashLight.addToShader(ourShader);
         
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -394,7 +210,7 @@ int main(int argc, char *argv[])
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
         // render the loaded model
-        model = glm::mat4();
+        glm::mat4 model;
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
@@ -402,8 +218,9 @@ int main(int argc, char *argv[])
         glm::mat3 normalCorrection = glm::mat3(transpose(inverse(model)));
         ourShader.setMat3("normalCorrection", normalCorrection);
 
-        ourModel.DrawWithShadow(ourShader, depthMap, depthCubemap, depthCubemap2);
+        ourModel.DrawWithShadow(ourShader, dirLight.depthMap.map, pointLight.depthMap.map, flashLight.depthMap.map);
 
+        // Draw floor
         ourShader.setInt("material.texture_diffuse1", 0);
         ourShader.setInt("material.texture_specular1", 0);
         ourShader.setInt("dirShadowMap", 1);
@@ -413,23 +230,22 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLight.depthMap.map);
          glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLight.depthMap.map);
         model = glm::mat4();
         ourShader.setMat4("model", model);
-        glBindVertexArray(planeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        renderFloor();
 
         // Debug depth map
         // ---------------------------------------------
         debugDepth.use();
-        debugDepth.setFloat("near_plane", near_plane);
-        debugDepth.setFloat("far_plane", far_plane);
+        debugDepth.setFloat("near_plane", 1.0f);
+        debugDepth.setFloat("far_plane", 25.0f);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
         //renderQuad();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -451,6 +267,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // Camera
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -460,6 +277,7 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
 
+    // Moving light
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
         lightPos.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -546,6 +364,124 @@ unsigned int loadTexture(char const * path, bool gamma)
     return textureID;
 }
 
+Shader createShader(const char* vert, const char* frag, const char* geom)
+{
+    stringstream ss1;
+    stringstream ss2;
+    Shader* shader;
+    ss1 << dir << "src/shaders/" << vert;
+    ss2 << dir << "src/shaders/" << frag;
+    if(geom != nullptr)
+    {
+        stringstream ss3;
+        ss3 << dir << "src/shaders/" << geom;
+        shader = new Shader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+    }
+    else
+    {
+        shader = new Shader(ss1.str().c_str(), ss2.str().c_str());
+    }
+
+    return *shader;
+}
+
+void renderDepthMap(DirLight* dirLight)
+{
+    dirLight->updateLightVariables();
+    dirLight->shader.use();
+    dirLight->shader.setMat4("lightSpaceMatrix", dirLight->lightSpaceMatrix);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, dirLight->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, dirLight->SHADOW_WIDTH, dirLight->SHADOW_HEIGHT);
+    renderSceneForDepth(dirLight->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderDepthMap(PointLight* light)
+{
+    light->updateLightVariables();
+    light->shader.use();
+    for (unsigned int i = 0; i < 6; ++i)
+        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
+    light->shader.setFloat("far_plane", light->far_plane);
+    light->shader.setVec3("lightPos", light->position);
+    
+    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT); 
+    renderSceneForDepth(light->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void renderDepthMap(FlashLight* light)
+{
+    light->updateLightVariables();
+    light->shader.use();
+    for (unsigned int i = 0; i < 6; ++i)
+        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
+    light->shader.setFloat("far_plane", light->far_plane);
+    light->shader.setVec3("lightPos", light->position);
+    
+    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT); 
+    renderSceneForDepth(light->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderSceneForDepth(Shader shader)
+{
+    glm::mat4 model;
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+    model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
+    //shader.use();
+    shader.setMat4("model", model);
+    glCullFace(GL_FRONT);
+    ourModel.DrawForDepth();
+    glCullFace(GL_BACK);
+    model = glm::mat4();
+    shader.setMat4("model", model);
+    renderFloor();
+}
+
+// Floor
+// -----
+unsigned int planeVAO = 0;
+unsigned int planeVBO;
+void renderFloor()
+{
+    if (planeVAO == 0)
+    {
+        float planeVertices[] = {
+            // positions            // normals         // texcoords
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+             25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
+        };
+        // plane VAO
+        glGenVertexArrays(1, &planeVAO);
+        glGenBuffers(1, &planeVBO);
+        glBindVertexArray(planeVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindVertexArray(0);
+    }
+    glBindVertexArray(planeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
 unsigned int quadVAO = 0;
@@ -571,6 +507,7 @@ void renderQuad()
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glBindVertexArray(0);
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
