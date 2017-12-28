@@ -16,6 +16,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <exception>
 #include <map>
 #include <vector>
 using namespace std;
@@ -43,6 +44,17 @@ public:
     {
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
+    }
+    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap, unsigned int flashShadowMap)
+    {
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].DrawWithShadow(shader, dirShadowMap, pointShadowMap, flashShadowMap);
+    }
+
+    void DrawForDepth()
+    {
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].DrawForDepth();
     }
     
 private:
@@ -119,16 +131,31 @@ private:
             }
             else
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-            /*// tangent
-            vector.x = mesh->mTangents[i].x;
-            vector.y = mesh->mTangents[i].y;
-            vector.z = mesh->mTangents[i].z;
-            vertex.Tangent = vector;
+            // tangent
+            try // does the mesh contain tangent coordinates?
+            {
+                vector.x = mesh->mTangents[i].x;
+                vector.y = mesh->mTangents[i].y;
+                vector.z = mesh->mTangents[i].z;
+                vertex.Tangent = vector;
+            }
+            catch(exception& e) 
+            {
+                vertex.Tangent = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
             // bitangent
-            vector.x = mesh->mBitangents[i].x;
-            vector.y = mesh->mBitangents[i].y;
-            vector.z = mesh->mBitangents[i].z;
-            vertex.Bitangent = vector;*/
+            try // does the mesh contain bitangent coordinates?
+            {
+                vector.x = mesh->mBitangents[i].x;
+                vector.y = mesh->mBitangents[i].y;
+                vector.z = mesh->mBitangents[i].z;
+                vertex.Bitangent = vector;
+            }
+            catch(exception& e)
+            {
+                vertex.Bitangent = glm::vec3(0.0f, 0.0f, 0.0f);
+            }
+            
             vertices.push_back(vertex);
         }
         // now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -189,7 +216,10 @@ private:
             if(!skip)
             {   // if texture hasn't been loaded already, load it
                 Texture texture;
-                texture.id = TextureFromFile(str.C_Str(), this->directory);
+                if(typeName == "texture_diffuse")
+                    texture.id = TextureFromFile(str.C_Str(), this->directory, false);
+                else
+                    texture.id = TextureFromFile(str.C_Str(), this->directory);
                 texture.type = typeName;
                 texture.path = str.C_Str();
                 textures.push_back(texture);
@@ -201,7 +231,7 @@ private:
 };
 
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool /*gamma*/)
+unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
 {
     string filename = string(path);
     filename = directory + '/' + filename;
@@ -222,7 +252,10 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool /*g
             format = GL_RGBA;
 
         glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        if(gamma)
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        else
+            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
