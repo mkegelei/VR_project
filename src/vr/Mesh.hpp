@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <Shader.hpp>
+#include <Light.hpp>
 
 #include <string>
 #include <fstream>
@@ -92,7 +93,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void DrawWithShadow(Shader shader, unsigned int dirShadowMap, unsigned int pointShadowMap, unsigned int flashShadowMap) 
+    void DrawWithShadow(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights) 
     {
         // bind appropriate textures
         unsigned int diffuseNr  = 1;
@@ -119,16 +120,28 @@ public:
             // and finally bind the texture
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
         }
+        unsigned int j = textures.size();
         //add shadow maps
-        glActiveTexture(GL_TEXTURE0 + textures.size());
-        glUniform1i(glGetUniformLocation(shader.ID, "dirShadowMap"), textures.size());
-        glBindTexture(GL_TEXTURE_2D, dirShadowMap);
-        glActiveTexture(GL_TEXTURE0 + textures.size() + 1);
-        glUniform1i(glGetUniformLocation(shader.ID, "pointShadowMap"), textures.size()+1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMap);
-        glActiveTexture(GL_TEXTURE0 + textures.size() + 2);
-        glUniform1i(glGetUniformLocation(shader.ID, "flashShadowMap"), textures.size()+2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashShadowMap);
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "dirShadowMap"), j);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
+        j++;
+
+        for (unsigned int i = 0; i < pointLights.size(); ++i)
+        {
+            glActiveTexture(GL_TEXTURE0 + j);
+            glUniform1i(glGetUniformLocation(shader.ID, ("pointLights["+std::to_string(i)+"].pointShadowMap").c_str()), j);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[i]->depthMap.map);
+            j++;
+        }
+        
+        for (unsigned int i = 0; i < flashLights.size(); ++i)
+        {
+            glActiveTexture(GL_TEXTURE0 + j);
+            glUniform1i(glGetUniformLocation(shader.ID, ("flashLights["+std::to_string(i)+"].flashShadowMap").c_str()), j);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[i]->depthMap.map);
+            j++;
+        }
         
         // draw mesh
         glBindVertexArray(VAO);

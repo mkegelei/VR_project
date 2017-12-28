@@ -22,6 +22,7 @@ public:
     float far_plane;
     const unsigned int SHADOW_WIDTH = 1024;
     const unsigned int SHADOW_HEIGHT = 1024;
+    unsigned int id;
 
     Light(){}
     virtual void updateLightVariables (){} 
@@ -37,10 +38,13 @@ public:
     glm::mat4 lightView;
     glm::mat4 lightSpaceMatrix;
 
-    DirLight(Shader shader, glm::vec3 direction, 
+    DirLight(){}
+
+    DirLight(unsigned int id, Shader shader, glm::vec3 direction, 
         glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, 
         float near_plane, float far_plane)
     {
+        this->id = id;
         this->shader = shader;
         this->depthMap = *(new SimpleDepthMap(SHADOW_WIDTH, SHADOW_HEIGHT));
         this->direction = direction;
@@ -82,11 +86,12 @@ public:
     float linear;
     float quadratic;
 
-    PointLight(Shader shader, glm::vec3 position, 
+    PointLight(unsigned int id, Shader shader, glm::vec3 position, 
         glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, 
         float near_plane, float far_plane,
         float constant, float linear, float quadratic)
     {
+        this->id = id;
         this->shader = shader;
         this->depthMap = *(new CubeDepthMap(SHADOW_WIDTH, SHADOW_HEIGHT));
         this->position = position;
@@ -101,11 +106,12 @@ public:
         this->quadratic = quadratic;
     }
 
-    PointLight(Shader shader, Camera* lightCam, 
+    PointLight(unsigned int id, Shader shader, Camera* lightCam, 
         glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, 
         float near_plane, float far_plane,
         float constant, float linear, float quadratic)
     {
+        this->id = id;
         this->shader = shader;
         this->depthMap = *(new CubeDepthMap(SHADOW_WIDTH, SHADOW_HEIGHT));
         this->lightCam = lightCam;
@@ -137,13 +143,13 @@ public:
     void addToShader(Shader shader)
     {
         shader.use();
-        shader.setVec3("pointLights[0].position", position);
-        shader.setVec3("pointLights[0].ambient", ambient);
-        shader.setVec3("pointLights[0].diffuse", diffuse);
-        shader.setVec3("pointLights[0].specular", specular);
-        shader.setFloat("pointLights[0].constant", constant);
-        shader.setFloat("pointLights[0].linear", linear);
-        shader.setFloat("pointLights[0].quadratic", quadratic);
+        shader.setVec3("pointLights[" + std::to_string(id) + "].position", position);
+        shader.setVec3("pointLights[" + std::to_string(id) + "].ambient", ambient);
+        shader.setVec3("pointLights[" + std::to_string(id) + "].diffuse", diffuse);
+        shader.setVec3("pointLights[" + std::to_string(id) + "].specular", specular);
+        shader.setFloat("pointLights[" + std::to_string(id) + "].constant", constant);
+        shader.setFloat("pointLights[" + std::to_string(id) + "].linear", linear);
+        shader.setFloat("pointLights[" + std::to_string(id) + "].quadratic", quadratic);
     } 
 
 };
@@ -162,12 +168,13 @@ public:
     float cutOff;
     float outerCutOff;
 
-    FlashLight(Shader shader, glm::vec3 position, glm::vec3 direction, 
+    FlashLight(unsigned int id, Shader shader, glm::vec3 position, glm::vec3 direction, 
         glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, 
         float near_plane, float far_plane,
         float constant, float linear, float quadratic,
         float cutOff, float outerCutOff)
     {
+        this->id = id;
         this->shader = shader;
         this->depthMap = *(new CubeDepthMap(SHADOW_WIDTH, SHADOW_HEIGHT));
         this->position = position;
@@ -185,12 +192,13 @@ public:
         this->outerCutOff = outerCutOff;
     }
 
-    FlashLight(Shader shader, Camera* lightCam, 
+    FlashLight(unsigned int id, Shader shader, Camera* lightCam, 
         glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, 
         float near_plane, float far_plane,
         float constant, float linear, float quadratic,
         float cutOff, float outerCutOff)
     {
+        this->id = id;
         this->shader = shader;
         this->depthMap = *(new CubeDepthMap(SHADOW_WIDTH, SHADOW_HEIGHT));
         this->lightCam = lightCam;
@@ -228,16 +236,16 @@ public:
     void addToShader(Shader shader)
     {
         shader.use();
-        shader.setVec3("flashLight.position", position);
-        shader.setVec3("flashLight.direction", direction);
-        shader.setVec3("flashLight.ambient", ambient);
-        shader.setVec3("flashLight.diffuse", diffuse);
-        shader.setVec3("flashLight.specular", specular);
-        shader.setFloat("flashLight.constant", constant);
-        shader.setFloat("flashLight.linear", linear);
-        shader.setFloat("flashLight.quadratic", quadratic);
-        shader.setFloat("flashLight.cutOff", cutOff);
-        shader.setFloat("flashLight.outerCutOff", outerCutOff);
+        shader.setVec3("flashLights[" + std::to_string(id) + "].position", position);
+        shader.setVec3("flashLights[" + std::to_string(id) + "].direction", direction);
+        shader.setVec3("flashLights[" + std::to_string(id) + "].ambient", ambient);
+        shader.setVec3("flashLights[" + std::to_string(id) + "].diffuse", diffuse);
+        shader.setVec3("flashLights[" + std::to_string(id) + "].specular", specular);
+        shader.setFloat("flashLights[" + std::to_string(id) + "].constant", constant);
+        shader.setFloat("flashLights[" + std::to_string(id) + "].linear", linear);
+        shader.setFloat("flashLights[" + std::to_string(id) + "].quadratic", quadratic);
+        shader.setFloat("flashLights[" + std::to_string(id) + "].cutOff", cutOff);
+        shader.setFloat("flashLights[" + std::to_string(id) + "].outerCutOff", outerCutOff);
     } 
 
 };

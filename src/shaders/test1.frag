@@ -25,6 +25,8 @@ struct PointLight {
     float constant;
     float linear;
     float quadratic;
+
+    samplerCube pointShadowMap;
 };
 
 struct FlashLight {
@@ -40,6 +42,8 @@ struct FlashLight {
     float constant;
     float linear;
     float quadratic;
+
+    samplerCube flashShadowMap;
 };
 
 in VERT_OUT {
@@ -50,16 +54,15 @@ in VERT_OUT {
 } frag_in;
 
 uniform float far_plane;
-uniform sampler2D dirShadowMap;
-uniform samplerCube pointShadowMap;
-uniform samplerCube flashShadowMap;
+uniform sampler2D dirShadowMap; 
 
 #define NR_POINT_LIGHTS 1
+#define NR_FLASH_LIGHTS 1
 
 uniform vec3 viewPos;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
-uniform FlashLight flashLight;
+uniform FlashLight flashLights[NR_FLASH_LIGHTS];
 uniform Material material;
 
 // array of offset direction for sampling
@@ -96,7 +99,8 @@ void main()
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, frag_in.FragPos, viewDir, kEnergyConservation);    
     // phase 3: flash light
-    result += CalcFlashLight(flashLight, norm, frag_in.FragPos, viewDir, kEnergyConservation);
+    for(int j = 0; j < NR_FLASH_LIGHTS; j++)
+        result += CalcFlashLight(flashLights[j], norm, frag_in.FragPos, viewDir, kEnergyConservation);
     
     FragColor = vec4(result, 1.0);
     float gamma = 1.0;
@@ -223,7 +227,7 @@ float PointShadowCalculation(vec3 fragPos, PointLight light)
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(pointShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        float closestDepth = texture(light.pointShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
         closestDepth *= far_plane;   // undo mapping [0;1]
         if(currentDepth - bias > closestDepth)
             shadow += 1.0;
@@ -250,7 +254,7 @@ float FlashShadowCalculation(vec3 fragPos, FlashLight light)
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
-        float closestDepth = texture(flashShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
+        float closestDepth = texture(light.flashShadowMap, fragToLight + gridSamplingDisk[i] * diskRadius).r;
         closestDepth *= far_plane;   // undo mapping [0;1]
         if(currentDepth - bias > closestDepth)
             shadow += 1.0;

@@ -53,7 +53,12 @@ float lastFrame = 0.0f;
 
 // lighting
 Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
-glm::vec3 dirLightPos(-2.0f, 4.0f, -1.0f);
+//std::vector<DirLight> dirLights;
+DirLight* dirLight;
+unsigned int plId = 0;
+std::vector<PointLight*> pointLights;
+unsigned int flId = 0;
+std::vector<FlashLight*> flashLights;
 
 //models
 Model ourModel;
@@ -121,7 +126,7 @@ int main(int argc, char *argv[])
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
     
-    Shader circuitShader = createShader("circuit.vert", "circuit.frag");
+    //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
     stringstream ss;
@@ -141,13 +146,24 @@ int main(int argc, char *argv[])
     // Shadow
     // ------
     // configure depth map FBO
-    DirLight dirLight = *(new DirLight(depthShader, dirLightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), near_plane, far_plane));
+    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), 
+        near_plane, far_plane);
     
     // configure cube depth map FBO
-    PointLight pointLight = *(new PointLight(depthCubeShader, &lightPos, glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f));
+    PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        near_plane, far_plane, 
+        1.0f, 0.09f, 0.032f);
+    pointLights.push_back(pointLight);
 
     // configure cube depth map FBO for flashlight
-    FlashLight flashLight = *(new FlashLight(depthCubeShader, &camera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), near_plane, far_plane, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f))));
+    FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera, 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        near_plane, far_plane, 
+        1.0f, 0.09f, 0.032f, 
+        glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
+    flashLights.push_back(flashLight);
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -175,14 +191,20 @@ int main(int argc, char *argv[])
         // --------------------------------------------------------------
         
         // render scene from light's point of view
-        renderDepthMap(&dirLight);
+        renderDepthMap(dirLight);
 
         // point shadows rendering
-        renderDepthMap(&pointLight);
-    
+        for (unsigned int i = 0; i < pointLights.size(); ++i)
+        {
+            renderDepthMap(pointLights[i]);
+        }
+        
         // point shadows rendering for flashlight
-        renderDepthMap(&flashLight);
-
+        for (unsigned int i = 0; i < flashLights.size(); ++i)
+        {
+            renderDepthMap(flashLights[i]);
+        }
+        
         // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -196,13 +218,19 @@ int main(int argc, char *argv[])
         ourShader.setFloat("far_plane", far_plane);
 
         // directional light
-        dirLight.addToShader(ourShader);
+        dirLight->addToShader(ourShader);
 
         // point light 1
-        pointLight.addToShader(ourShader);
+        for (unsigned int i = 0; i < pointLights.size(); ++i)
+        {
+            pointLights[i]->addToShader(ourShader);
+        }
         
         // flashLight
-        flashLight.addToShader(ourShader);
+        for (unsigned int i = 0; i < flashLights.size(); ++i)
+        {
+            flashLights[i]->addToShader(ourShader);
+        }
         
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -218,23 +246,23 @@ int main(int argc, char *argv[])
         glm::mat3 normalCorrection = glm::mat3(transpose(inverse(model)));
         ourShader.setMat3("normalCorrection", normalCorrection);
 
-        ourModel.DrawWithShadow(ourShader, dirLight.depthMap.map, pointLight.depthMap.map, flashLight.depthMap.map);
+        ourModel.DrawWithShadow(ourShader, dirLight, pointLights, flashLights);
 
         // Draw floor
         ourShader.setInt("material.texture_diffuse1", 0);
         ourShader.setInt("material.texture_specular1", 0);
         ourShader.setInt("dirShadowMap", 1);
-        ourShader.setInt("pointShadowMap", 2);
-        ourShader.setInt("flashShadowMap", 3);
+        ourShader.setInt("pointLights[0].pointShadowMap", 2);
+        ourShader.setInt("flashLights[0].flashShadowMap", 3);
         ourShader.setFloat("material.shininess", 2.0f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLight.depthMap.map);
-         glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLight.depthMap.map);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[0]->depthMap.map);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
         model = glm::mat4();
         ourShader.setMat4("model", model);
         renderFloor();
@@ -245,13 +273,13 @@ int main(int argc, char *argv[])
         debugDepth.setFloat("near_plane", 1.0f);
         debugDepth.setFloat("far_plane", 25.0f);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, dirLight.depthMap.map);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
         //renderQuad();
         
         // circuit
         // -------
-        /*
-        circuitShader.use();
+        
+        /*circuitShader.use();
         // view/projection transformations
         circuitShader.setMat4("projection", projection);
         circuitShader.setMat4("view", view);
