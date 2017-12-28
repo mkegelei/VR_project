@@ -61,18 +61,26 @@ class Circuit
 public:
 
   Circuit() {
-    int num_points = 7;
+    int num_points = 10;
     float points[num_points*3] = {
-      2.0, 4.0, 3.0,
-      1.0, 5.0, 3.0,
-      0.0, 5.0, 3.0,
-      1.0, 4.0, 3.0,
+      5.0, 4.0, 3.0,
       3.0, 3.0, 3.0,
-      1.0, 5.0, 3.0,
-      2.0, 4.0, 3.0
+      2.0, 1.0, 3.0,
+
+      1.0, 1.0, 2.0,
+      0.0, 4.0, 0.0,
+
+      -2.0, 3.0, 3.0,
+      -2.0, -1, 3.0,
+
+      0.0, -1.0, 3.0,
+      2.0, -2.0, 3.0,
+
+      4.0, -2.0, 3.0
+
     };
 
-    cout << "control points init " << this->controlPoints.size() << endl << flush;
+
     // convert array of floats to vector of points
     vector<point> controls; // temp control points
     for (int i = 0; i < num_points; i++) {
@@ -82,20 +90,27 @@ public:
       p.z = points[i*3+2];
       controls.push_back(p);
     }
-    cout << "Temp control points " << controls.size() << endl << flush;
 
     // Need to add control points to ensure the gradient is the same.
-    for ( int i = 1; i < controls.size() - 1; i+=2 ){
-
-  		this->controlPoints.push_back(center(controls[i-1], controls[i]));
-  		this->controlPoints.push_back(controls[i]);
-  		this->controlPoints.push_back(controls[i+1]);
-
-  		if ( i+2 < controls.size() - 1 ){
-  			this->controlPoints.push_back(center(controls[i+1], controls[i+2]));
-  		}
+    this->controlPoints.push_back(controls[0]);
+    for ( int i = 1; i < controls.size() - 2; i+=2 ){
+      this->controlPoints.push_back(controls[i]);
+      this->controlPoints.push_back(controls[i+1]);
+  		this->controlPoints.push_back(center(controls[i+1], controls[i+2]));
   	}
-
+    this->controlPoints.push_back(controls[controls.size()-1]);
+    point p; // point to connect the start and the end of the loop with the same gradient
+    point start = controls[0];
+    point second = controls[1];
+    p.x = 2*start.x - second.x;
+    p.y = 2*start.y - second.y;
+    p.z = 2*start.z - second.z;
+    this->controlPoints.push_back(p);
+    this->controlPoints.push_back(start);
+    cout << "Control points (" << this->controlPoints.size() << ") :" << endl << flush;
+    for (int i = 0; i < this->controlPoints.size(); i++) {
+      cout << "P" << i << " (" << this->controlPoints[i].x << ", " << this->controlPoints[i].y << ", " << this->controlPoints[i].z << ")" << endl;
+    }
 
     this->setup();
 
@@ -114,9 +129,9 @@ public:
 
     point center(point p1, point p2) {
       point p;
-      p.x = (p1.x + p1.x)/2;
-      p.y = (p1.y + p1.y)/2;
-      p.z = (p1.z + p1.z)/2;
+      p.x = (p1.x + p2.x)/2;
+      p.y = (p1.y + p2.y)/2;
+      p.z = (p1.z + p2.z)/2;
       return p;
     }
 
@@ -124,7 +139,6 @@ public:
     vector<point> getPoints()
     {
       vector<point> drawingPoints;
-      cout << "control points " << this->controlPoints.size() << endl << flush;
       for(int i = 0; i < this->controlPoints.size() - 3; i+=3)
       {
         point p0 = this->controlPoints[i];
@@ -160,7 +174,7 @@ public:
         vertices[i*3+1] = points[i].y;
         vertices[i*3+2] = points[i].z;
       }
-      cout << "points " << points.size() << endl << flush;
+      cout << "Bézier points:  " << points.size() << endl << flush;
       glGenVertexArrays(1, &this->VAO);
       glGenBuffers(1, &this->VBO);
 
