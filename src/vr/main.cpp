@@ -40,6 +40,7 @@ const float near_plane = 1.0f;
 const float far_plane = 25.0f;
 const char* dir;
 const char* objName;
+float heightScale = 0.1;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -148,6 +149,15 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/textures/brickwall_normal.jpg";
     unsigned int brickwallNormalTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/toy_box_diffuse.png";
+    unsigned int toyboxTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/toy_box_normal.png";
+    unsigned int toyboxNormalTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/toy_box_disp.png";
+    unsigned int toyboxDispTexture = loadTexture(ss.str().c_str());
     //unsigned int emissionMap = loadTexture(ss4.str().c_str());
 
     // Shadow
@@ -223,6 +233,9 @@ int main(int argc, char *argv[])
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setFloat("material.shininess", 16.0f);
         modelShader.setFloat("far_plane", far_plane);
+        modelShader.setFloat("heightScale", heightScale);
+        modelShader.setInt("parallax", 0);
+        modelShader.setInt("material.texture_height1", 0);
         
         // directional light
         dirLight->addToShader(modelShader);
@@ -256,16 +269,18 @@ int main(int argc, char *argv[])
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights);
 
         // Draw brickwall
+        modelShader.setInt("parallax", 1);
+        modelShader.setFloat("material.shininess", 2.0f);
 
         modelShader.setInt("material.texture_diffuse1", 0);
         modelShader.setInt("material.texture_specular1", 0);
         modelShader.setInt("material.texture_normal1", 4);
+        modelShader.setInt("material.texture_height1", 5);
         modelShader.setInt("dirShadowMap", 1);
         modelShader.setInt("pointLights[0].pointShadowMap", 2);
         modelShader.setInt("flashLights[0].flashShadowMap", 3);
-        modelShader.setFloat("material.shininess", 2.0f);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, brickwallTexture);
+        glBindTexture(GL_TEXTURE_2D, toyboxTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
         glActiveTexture(GL_TEXTURE2);
@@ -273,9 +288,11 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, brickwallNormalTexture);
+        glBindTexture(GL_TEXTURE_2D, toyboxNormalTexture);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, toyboxDispTexture);
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
+        model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
         modelShader.setMat4("model", model);
         
         normalMatrix = glm::mat3(transpose(inverse(model)));
@@ -390,6 +407,22 @@ void processInput(GLFWwindow *window)
         lightPos.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         lightPos.ProcessKeyboard(RIGHT, deltaTime);
+
+    // Heigth scale
+    if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+    {
+        if (heightScale > 0.0f)
+            heightScale -= 0.0005f;
+        else
+            heightScale = 0.0f;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+    {
+        if (heightScale < 1.0f)
+            heightScale += 0.0005f;
+        else
+            heightScale = 1.0f;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
