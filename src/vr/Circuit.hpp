@@ -159,21 +159,38 @@ public:
         for(int j = 1; j <= SEGMENTS_PER_CURVE; j++)
         {
           float t = j / (float) SEGMENTS_PER_CURVE;
-          drawingPoints.push_back(b.calc(t));
+          point p = b.calc(t);
+          addPoint(drawingPoints, p);
         }
       }
       this->num_points = drawingPoints.size();
       return drawingPoints;
     }
 
+    void addPoint(vector<point> &points, point p) {
+
+
+      glm::vec3 current = pointToVec3(p);
+      glm::vec3 previous = pointToVec3(points.size() - 1);
+      glm::vec3 T = normalize(current - previous); // Tangent
+      glm::vec3 B = normalize(cross(T, current + previous)); // Binormal
+      glm::vec3 N = normalize(cross(B,T));  // Normal
+      points.push_back(vec3ToPoint(B));
+      points.push_back(vec3ToPoint(T));
+      points.push_back(vec3ToPoint(N));
+      points.push_back(p);
+    }
+
     void setup() {
       vector<point> points = this->getPoints();
       float vertices[points.size()*3];
+      // Convert vector<point> to float array
       for (unsigned int i = 0; i < points.size(); i++) {
         vertices[i*3] = points[i].x;
         vertices[i*3+1] = points[i].y;
         vertices[i*3+2] = points[i].z;
       }
+      // For each point, we have 4 vectors: Position, Binormal, Tangent, Normal
       cout << "Bézier points:  " << points.size() << endl << flush;
       glGenVertexArrays(1, &this->VAO);
       glGenBuffers(1, &this->VBO);
@@ -184,8 +201,20 @@ public:
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
       // position attribute
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0);
       glEnableVertexAttribArray(0);
+    }
+
+    glm::vec3 pointToVec3(point p) {
+      return glm::vec3(p.x, p.y, p.z);
+    }
+
+    point vec3ToPoint(glm::vec3 v) {
+      point p;
+      p.x = v[0];
+      p.y = v[1];
+      p.z = v[2];
+      return p
     }
 };
 #endif
