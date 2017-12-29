@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
             objName = argv[2];
         }
         else{
-            objName = "nanosuit/nanosuit.obj";
+            objName = "cyborg/cyborg.obj";
         }
     }
     else{
@@ -116,7 +116,8 @@ int main(int argc, char *argv[])
 
     // build and compile shaders
     // -------------------------
-    Shader ourShader = createShader("test1.vert", "test1.frag");
+    Shader modelShader = createShader("test1.vert", "test1.frag");
+    Shader floorShader = createShader("floor.vert", "floor.frag");
 
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
     debugDepth.use();
@@ -141,6 +142,12 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/textures/wood.png";
     unsigned int woodTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/brickwall.jpg";
+    unsigned int brickwallTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/brickwall_normal.jpg";
+    unsigned int brickwallNormalTexture = loadTexture(ss.str().c_str());
     //unsigned int emissionMap = loadTexture(ss4.str().c_str());
 
     // Shadow
@@ -211,50 +218,102 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
-        ourShader.use();
+        modelShader.use();
 
-        ourShader.setVec3("viewPos", camera.Position);
-        ourShader.setFloat("material.shininess", 16.0f);
-        ourShader.setFloat("far_plane", far_plane);
-
+        modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setFloat("material.shininess", 16.0f);
+        modelShader.setFloat("far_plane", far_plane);
+        
         // directional light
-        dirLight->addToShader(ourShader);
+        dirLight->addToShader(modelShader);
 
         // point light 1
         for (unsigned int i = 0; i < pointLights.size(); ++i)
         {
-            pointLights[i]->addToShader(ourShader);
+            pointLights[i]->addToShader(modelShader);
         }
         
         // flashLight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
-            flashLights[i]->addToShader(ourShader);
+            flashLights[i]->addToShader(modelShader);
         }
         
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+        modelShader.setMat4("projection", projection);
+        modelShader.setMat4("view", view);
         // render the loaded model
         glm::mat4 model;
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
+        modelShader.setMat4("model", model);
 
-        glm::mat3 normalCorrection = glm::mat3(transpose(inverse(model)));
-        ourShader.setMat3("normalCorrection", normalCorrection);
+        glm::mat3 normalMatrix = glm::mat3(transpose(inverse(model)));
+        modelShader.setMat3("normalMatrix", normalMatrix);
 
-        ourModel.DrawWithShadow(ourShader, dirLight, pointLights, flashLights);
+        ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights);
+
+        // Draw brickwall
+
+        modelShader.setInt("material.texture_diffuse1", 0);
+        modelShader.setInt("material.texture_specular1", 0);
+        modelShader.setInt("material.texture_normal1", 4);
+        modelShader.setInt("dirShadowMap", 1);
+        modelShader.setInt("pointLights[0].pointShadowMap", 2);
+        modelShader.setInt("flashLights[0].flashShadowMap", 3);
+        modelShader.setFloat("material.shininess", 2.0f);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, brickwallTexture);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[0]->depthMap.map);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, brickwallNormalTexture);
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
+        modelShader.setMat4("model", model);
+        
+        normalMatrix = glm::mat3(transpose(inverse(model)));
+        modelShader.setMat3("normalMatrix", normalMatrix);
+        renderQuad();
 
         // Draw floor
-        ourShader.setInt("material.texture_diffuse1", 0);
-        ourShader.setInt("material.texture_specular1", 0);
-        ourShader.setInt("dirShadowMap", 1);
-        ourShader.setInt("pointLights[0].pointShadowMap", 2);
-        ourShader.setInt("flashLights[0].flashShadowMap", 3);
-        ourShader.setFloat("material.shininess", 2.0f);
+        floorShader.use();
+
+        floorShader.setVec3("viewPos", camera.Position);
+        floorShader.setFloat("material.shininess", 2.0f);
+        floorShader.setFloat("far_plane", far_plane);
+        
+        // directional light
+        dirLight->addToShader(floorShader);
+
+        // point light 1
+        for (unsigned int i = 0; i < pointLights.size(); ++i)
+        {
+            pointLights[i]->addToShader(floorShader);
+        }
+        
+        // flashLight
+        for (unsigned int i = 0; i < flashLights.size(); ++i)
+        {
+            flashLights[i]->addToShader(floorShader);
+        }
+        
+        // view/projection transformations
+        floorShader.setMat4("projection", projection);
+        floorShader.setMat4("view", view);
+
+        
+        floorShader.setInt("material.texture_diffuse1", 0);
+        floorShader.setInt("material.texture_specular1", 0);
+        floorShader.setInt("dirShadowMap", 1);
+        floorShader.setInt("pointLights[0].pointShadowMap", 2);
+        floorShader.setInt("flashLights[0].flashShadowMap", 3);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
@@ -264,7 +323,9 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
         model = glm::mat4();
-        ourShader.setMat4("model", model);
+        floorShader.setMat4("model", model);
+        normalMatrix = glm::mat3(transpose(inverse(model)));
+        floorShader.setMat3("normalMatrix", normalMatrix);
         renderFloor();
 
         // Debug depth map
@@ -478,7 +539,7 @@ void renderSceneForDepth(Shader shader)
 {
     glm::mat4 model;
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-    model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f)); // it's a bit too big for our scene, so scale it down
+    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
     //shader.use();
     shader.setMat4("model", model);
     glCullFace(GL_FRONT);
@@ -487,6 +548,10 @@ void renderSceneForDepth(Shader shader)
     model = glm::mat4();
     shader.setMat4("model", model);
     renderFloor();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
+    shader.setMat4("model", model);
+    renderQuad();
 }
 
 // Floor
@@ -499,12 +564,12 @@ void renderFloor()
     {
         float planeVertices[] = {
             // positions            // normals         // texcoords
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,  
+            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,  
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,  
 
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,  
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,  
              25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
         };
         // plane VAO
@@ -533,26 +598,90 @@ void renderQuad()
 {
     if (quadVAO == 0)
     {
+        // positions
+        glm::vec3 pos1(-1.0f,  1.0f, 0.0f);
+        glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
+        glm::vec3 pos3( 1.0f, -1.0f, 0.0f);
+        glm::vec3 pos4( 1.0f,  1.0f, 0.0f);
+        // texture coordinates
+        glm::vec2 uv1(0.0f, 1.0f);
+        glm::vec2 uv2(0.0f, 0.0f);
+        glm::vec2 uv3(1.0f, 0.0f);  
+        glm::vec2 uv4(1.0f, 1.0f);
+        // normal vector
+        glm::vec3 nm(0.0f, 0.0f, 1.0f);
+
+        // calculate tangent/bitangent vectors of both triangles
+        glm::vec3 tangent1, bitangent1;
+        glm::vec3 tangent2, bitangent2;
+        // triangle 1
+        // ----------
+        glm::vec3 edge1 = pos2 - pos1;
+        glm::vec3 edge2 = pos3 - pos1;
+        glm::vec2 deltaUV1 = uv2 - uv1;
+        glm::vec2 deltaUV2 = uv3 - uv1;
+
+        GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent1 = glm::normalize(tangent1);
+
+        bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent1 = glm::normalize(bitangent1);
+
+        // triangle 2
+        // ----------
+        edge1 = pos3 - pos1;
+        edge2 = pos4 - pos1;
+        deltaUV1 = uv3 - uv1;
+        deltaUV2 = uv4 - uv1;
+
+        f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent2 = glm::normalize(tangent2);
+
+
+        bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent2 = glm::normalize(bitangent2);
+
+
         float quadVertices[] = {
-            // positions        // texture Coords
-            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+            // positions            // normal         // texcoords  // tangent                          // bitangent
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
         };
-        // setup plane VAO
+        // configure plane VAO
         glGenVertexArrays(1, &quadVAO);
         glGenBuffers(1, &quadVBO);
         glBindVertexArray(quadVAO);
         glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-        glBindVertexArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
     }
     glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
