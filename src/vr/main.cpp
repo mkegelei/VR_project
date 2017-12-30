@@ -28,6 +28,7 @@ void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);
 void renderSceneForDepth(Shader shader);
+void renderCube();
 void renderFloor();
 void renderTestQuad();
 void renderQuad();
@@ -44,8 +45,10 @@ const char* objName;
 
  // Effects parameters
 float heightScale = 0.1;
-bool hdr = false;
+bool hdr = true;
 bool hdrKeyPressed = false;
+bool bloom = true;
+bool bloomKeyPressed = false;
 float exposure = 1.0f;
 
 // camera
@@ -57,7 +60,6 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-bool firstFrame = true;
 
 // lighting
 Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
@@ -126,6 +128,7 @@ int main(int argc, char *argv[])
     // -------------------------
     Shader modelShader = createShader("test1.vert", "test1.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
+    Shader lampShader = createShader("lamp.vert", "lamp.frag");
 
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
     debugDepth.use();
@@ -139,12 +142,13 @@ int main(int argc, char *argv[])
     
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
     hdrShader.use();
-    hdrShader.setInt("hdrBuffer", 0);
+    hdrShader.setInt("scene", 0);
+    hdrShader.setInt("bloomBlur", 1);
 
-    /*Shader pingpongShader = createShader("pingpong.vert", "pingpong.frag");
-    pingpongShader.use();
-    pingpongShader.setInt("colorBuffer", 0);*/
-    
+
+    Shader blurShader = createShader("blur.vert", "blur.frag");
+    blurShader.use();
+    blurShader.setInt("image", 0);
 
     //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
@@ -182,25 +186,25 @@ int main(int argc, char *argv[])
     // ------
     // configure depth map FBO
     dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
         near_plane, far_plane);
     
     // configure cube depth map FBO
     PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(2.0f, 2.0f, 2.0f), 
         near_plane, far_plane, 
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
 
     // configure cube depth map FBO for flashlight
     FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera, 
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f), 
         near_plane, far_plane, 
         1.0f, 0.09f, 0.032f, 
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
     FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.5f, 1.5f, 1.5f), 
         near_plane, far_plane, 
         1.0f, 0.09f, 0.032f, 
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
@@ -212,55 +216,52 @@ int main(int argc, char *argv[])
     glGenFramebuffers(1, &hdrFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
     // create floating point color buffer
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+    unsigned int colorBuffers[2];
+    glGenTextures(2, colorBuffers);
+    for (unsigned int i = 0; i < 2; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // attach texture to framebuffer
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
+    }
     // create depth buffer (renderbuffer) 
     unsigned int rboDepth;  
     glGenRenderbuffers(1, &rboDepth);   
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-    // attach buffers
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments);
+    // finally check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "Framebuffer not complete! " << "HDR" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // ping-pong-framebuffer for blurring
     unsigned int pingpongFBO[2];
-    unsigned int pingpongColorBuffer[2];
-    unsigned int pingpongRboDepth[2];
-    for(GLuint i = 0; i < 2; i++)
+    unsigned int pingpongColorbuffers[2];
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongColorbuffers);
+    for (unsigned int i = 0; i < 2; i++)
     {
-        glGenFramebuffers(1, &pingpongFBO[i]);
         glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
-        // create floating point color buffer
-        
-        glGenTextures(1, &pingpongColorBuffer[i]);
-        glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
-        // create depth buffer (renderbuffer) 
-          
-        glGenRenderbuffers(1, &pingpongRboDepth[i]);   
-        glBindRenderbuffer(GL_RENDERBUFFER, pingpongRboDepth[i]);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-        // attach buffers
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pingpongRboDepth[i]);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pingpongColorBuffer[i], 0); 
+        glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorbuffers[i], 0);
+        // also check if framebuffers are complete (no need for depth buffer)
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-            std::cout << "Framebuffer not complete! " << "pingpong " << i << std::endl;
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            std::cout << "Framebuffer not complete!" << std::endl;
     }
-
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -284,41 +285,6 @@ int main(int argc, char *argv[])
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // eye adaptation
-        /*if (!firstFrame)
-        {
-            GLuint texWidth = SCR_WIDTH, texHeight = SCR_HEIGHT;
-            GLboolean change = true;
-            pingpongShader.use();
-            glActiveTexture(GL_TEXTURE0);
-
-            // Then pingpong between color buffers creating a smaller texture every time
-            while (texWidth > 1)
-            {
-                // first change texture size
-                glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[change ? 1 : 0]);
-                texWidth = texWidth / 2;
-                texHeight = texHeight / 2;
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth > 1 ? texWidth : 1, texHeight > 1 ? texHeight : 1, 0, GL_RGB, GL_FLOAT, NULL);
-
-                glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[change ? 1 : 0]);
-                glViewport(0, 0, texWidth, texHeight);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[change ? 0 : 1]);
-                renderTestQuad();
-                change = !change;
-            }
-
-            // Once done read the luminescence value of 1x1 texture
-            GLfloat luminescence[3];
-            glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &luminescence);
-            GLfloat lum = 0.2126 * luminescence[0] + 0.7152 * luminescence[1] + 0.0722 * luminescence[2];
-            exposure = std::lerp(exposure, 0.5 / lum, 0.05); // slowly adjust exposure based on average brightness
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        }
-        else
-            firstFrame = false;*/
-
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
         
@@ -337,7 +303,7 @@ int main(int argc, char *argv[])
             renderDepthMap(flashLights[i]);
         }
         
-        // 2. render scene as normal using the generated depth/shadow map
+        // 2.1 render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -470,6 +436,17 @@ int main(int argc, char *argv[])
         floorShader.setMat3("normalMatrix", normalMatrix);
         renderFloor();
 
+        // also draw the lamp object
+        lampShader.use();
+        lampShader.setMat4("projection", projection);
+        lampShader.setMat4("view", view);
+        model = glm::mat4();
+        model = glm::translate(model, lightPos.Position);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lampShader.setMat4("model", model);
+        lampShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
+        renderCube();
+
         // circuit
         // -------
         
@@ -486,29 +463,42 @@ int main(int argc, char *argv[])
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Reset color buffer dimensions
-        /*for (GLuint i = 0; i < 2; i++)
+        // 2.2 blur bright fragments with two-pass Gaussian Blur 
+        // --------------------------------------------------
+        bool horizontal = true, first_iteration = true;
+        unsigned int amount = 10;
+        blurShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        
+        for (unsigned int i = 0; i < amount; i++)
         {
-            glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[i]);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-        }*/
+            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+            blurShader.setInt("horizontal", horizontal);
+            glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorbuffers[!horizontal]);  // bind texture of other framebuffer (or scene if first iteration)
+            renderTestQuad();
+            horizontal = !horizontal;
+            if (first_iteration)
+                first_iteration = false;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Draw result
-        //glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[0]);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         hdrShader.use();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
         hdrShader.setInt("hdr", hdr);
+        hdrShader.setInt("bloom", bloom);
         hdrShader.setFloat("exposure", exposure);
         renderTestQuad();
 
-        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
         // Debug values
         //std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
+        //std::cout << "bloom: " << (bloom ? "on" : "off") << std::endl;
         //std::cout << "heightScale: " << heightScale << std::endl;
         // Debug depth map
         // ---------------------------------------------
@@ -580,6 +570,16 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
     {
         hdrKeyPressed = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS && !bloomKeyPressed)
+    {
+        bloom = !bloom;
+        bloomKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_RELEASE)
+    {
+        bloomKeyPressed = false;
     }
 
     if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
@@ -755,6 +755,81 @@ void renderSceneForDepth(Shader shader)
     model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
     shader.setMat4("model", model);
     renderQuad();
+}
+
+// renderCube() renders a 1x1 3D cube in NDC.
+// -------------------------------------------------
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube()
+{
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+            // back face
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // front face
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+            // left face
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            // right face
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+            // bottom face
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+            // top face
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+             1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
 }
 
 // Floor
