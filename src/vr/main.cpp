@@ -127,8 +127,7 @@ int main(int argc, char *argv[])
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
-
-    Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
+    
     //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
@@ -137,8 +136,8 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
 
-    Circuit circuit = Circuit();
-
+    //Circuit circuit = Circuit();
+    
     // load additionnal textures
     // -------------------------
     ss.str("");
@@ -164,22 +163,22 @@ int main(int argc, char *argv[])
     // Shadow
     // ------
     // configure depth map FBO
-    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f),
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f),
+    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.4f, 0.4f, 0.4f), glm::vec3(0.5f, 0.5f, 0.5f), 
         near_plane, far_plane);
-
+    
     // configure cube depth map FBO
-    PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos,
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f),
-        near_plane, far_plane,
+    PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        near_plane, far_plane, 
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
 
     // configure cube depth map FBO for flashlight
-    FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera,
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f),
-        near_plane, far_plane,
-        1.0f, 0.09f, 0.032f,
+    FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera, 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        near_plane, far_plane, 
+        1.0f, 0.09f, 0.032f, 
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
 
@@ -207,7 +206,7 @@ int main(int argc, char *argv[])
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
-
+        
         // render scene from light's point of view
         renderDepthMap(dirLight);
 
@@ -216,13 +215,13 @@ int main(int argc, char *argv[])
         {
             renderDepthMap(pointLights[i]);
         }
-
+        
         // point shadows rendering for flashlight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
             renderDepthMap(flashLights[i]);
         }
-
+        
         // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -246,13 +245,13 @@ int main(int argc, char *argv[])
         {
             pointLights[i]->addToShader(modelShader);
         }
-
+        
         // flashLight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
             flashLights[i]->addToShader(modelShader);
         }
-
+        
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -354,11 +353,11 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
         //renderQuad();
-
+        
         // circuit
         // -------
-
-        circuitShader.use();
+        
+        /*circuitShader.use();
         // view/projection transformations
         circuitShader.setMat4("projection", projection);
         circuitShader.setMat4("view", view);
@@ -367,7 +366,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
-        circuit.Draw();
+        circuit.Draw();*/
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -544,10 +543,10 @@ void renderDepthMap(PointLight* light)
         light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
     light->shader.setFloat("far_plane", light->far_plane);
     light->shader.setVec3("lightPos", light->position);
-
+    
     glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT); 
     renderSceneForDepth(light->shader);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -561,10 +560,10 @@ void renderDepthMap(FlashLight* light)
         light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
     light->shader.setFloat("far_plane", light->far_plane);
     light->shader.setVec3("lightPos", light->position);
-
+    
     glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT); 
     renderSceneForDepth(light->shader);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

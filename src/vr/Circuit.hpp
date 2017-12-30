@@ -118,7 +118,7 @@ public:
 
   void Draw() {
     glBindVertexArray(this->VAO);
-    glDrawArrays(GL_POINTS, 0, this->num_points);
+    glDrawArrays(GL_LINE_LOOP, 0, this->num_points);
   }
 
 
@@ -139,7 +139,8 @@ public:
     vector<point> getPoints()
     {
       vector<point> drawingPoints;
-      for(unsigned int i = 0; i < this->controlPoints.size() - 3; i+=3) {
+      for(unsigned int i = 0; i < this->controlPoints.size() - 3; i+=3)
+      {
         point p0 = this->controlPoints[i];
         point p1 = this->controlPoints[i + 1];
         point p2 = this->controlPoints[i + 2];
@@ -158,44 +159,21 @@ public:
         for(int j = 1; j <= SEGMENTS_PER_CURVE; j++)
         {
           float t = j / (float) SEGMENTS_PER_CURVE;
-          point p = b.calc(t);
-          addBTN(drawingPoints, p, drawingPoints[drawingPoints.size()-1]);
-          drawingPoints.push_back(p);
+          drawingPoints.push_back(b.calc(t));
         }
       }
-      // this line adds NANs ??? :
-      addBTN(drawingPoints, drawingPoints[drawingPoints.size()-2], drawingPoints[0]); // BTN for the last point : connect end with start
-      this->num_points = (int) drawingPoints.size()/4;
-      cout << "num_points" << this->num_points << endl;
+      this->num_points = drawingPoints.size();
       return drawingPoints;
-    }
-
-    void addBTN(vector<point> &points, point p_current, point p_previous) {
-
-      glm::vec3 current = pointToVec3(p_current);
-      glm::vec3 previous = pointToVec3(p_previous);
-      //cout << "current" << " (" << current.x << ", " << current.y << ", " << current.z << ")" << endl;
-      //cout << "previous" << " (" << previous.x << ", " << previous.y << ", " << previous.z << ")" << endl;
-      glm::vec3 T = normalize(current - previous); // Tangent
-      glm::vec3 B = normalize(cross(T, current + previous)); // Binormal
-      glm::vec3 N = normalize(cross(B,T));  // Normal
-      points.push_back(vec3ToPoint(B));
-      points.push_back(vec3ToPoint(T));
-      points.push_back(vec3ToPoint(N));
-
     }
 
     void setup() {
       vector<point> points = this->getPoints();
       float vertices[points.size()*3];
-      // Convert vector<point> to float array
       for (unsigned int i = 0; i < points.size(); i++) {
         vertices[i*3] = points[i].x;
         vertices[i*3+1] = points[i].y;
         vertices[i*3+2] = points[i].z;
-        //cout << "P" << i << " (" << points[i].x << ", " << points[i].y << ", " << points[i].z << ")" << endl;
       }
-      // For each point, we have 4 vectors: Position, Binormal, Tangent, Normal
       cout << "Bézier points:  " << points.size() << endl << flush;
       glGenVertexArrays(1, &this->VAO);
       glGenBuffers(1, &this->VBO);
@@ -206,29 +184,8 @@ public:
       glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
       // position attribute
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
       glEnableVertexAttribArray(0);
-      // Binormal
-      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float)));
-      glEnableVertexAttribArray(1);
-      // Tangent
-      glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float)));
-      glEnableVertexAttribArray(2);
-      // Normal
-      glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(9 * sizeof(float)));
-      glEnableVertexAttribArray(3);
-    }
-
-    glm::vec3 pointToVec3(point p) {
-      return glm::vec3(p.x, p.y, p.z);
-    }
-
-    point vec3ToPoint(glm::vec3 v) {
-      point p;
-      p.x = v[0];
-      p.y = v[1];
-      p.z = v[2];
-      return p;
     }
 };
 #endif
