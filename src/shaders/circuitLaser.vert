@@ -26,5 +26,5 @@ void main()
     vs_out.binormal = normalize(vec3(projection * vec4(normalMatrix * aBinormal, 1.0)));
     vs_out.tangent = normalize(vec3(projection * vec4(normalMatrix * aTangent, 1.0)));
     vs_out.normal = normalize(vec3(projection * vec4(normalMatrix * aNormal, 1.0)));
-    
+
 }

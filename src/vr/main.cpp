@@ -141,7 +141,8 @@ int main(int argc, char *argv[])
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
 
-    Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
+    Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitLaser.geom");
+    Shader circuitBTNShader = createShader("circuitLaser.vert", "circuitBTN.frag", "circuitBTN.geom");
 
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
@@ -242,7 +243,11 @@ int main(int argc, char *argv[])
         std::cout << "Framebuffer not complete! " << "HDR" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+<<<<<<< HEAD
     // ping-pong-framebuffer for blurring
+=======
+
+>>>>>>> dev
     unsigned int pingpongFBO[2];
     unsigned int pingpongColorbuffers[2];
     glGenFramebuffers(2, pingpongFBO);
@@ -456,9 +461,21 @@ int main(int argc, char *argv[])
 
         // render the loaded model
         model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
         circuit.Draw();
+        
+
+        circuitBTNShader.use();
+        // view/projection transformations
+        circuitShader.setMat4("projection", projection);
+        circuitShader.setMat4("view", view);
+
+        // render the loaded model
+        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitShader.setMat4("model", model);
+        circuit.DrawBTN();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
