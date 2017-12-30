@@ -10,7 +10,7 @@ in VS_OUT {
 
 out vec3 fColor;
 
-const float MAGNITUDE = 1.4;
+const float MAGNITUDE = 0.2;
 
 void GenerateLine(vec3 vector)
 {
@@ -23,10 +23,18 @@ void GenerateLine(vec3 vector)
 
 void main()
 {
+    /*
+    fColor = vec3(1.0, 1.0, 1.0);
+    gl_Position = gl_in[0].gl_Position;
+    EmitVertex();
+    EndPrimitive();
+    */
+
     fColor = vec3(1.0, 0.0, 0.0);
     GenerateLine(gs_in[0].binormal);
     fColor = vec3(0.0, 1.0, 0.0);
     GenerateLine(gs_in[0].tangent);
     fColor = vec3(0.0, 0.0, 1.0);
     GenerateLine(gs_in[0].normal);
+
 }

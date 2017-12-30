@@ -127,6 +127,7 @@ int main(int argc, char *argv[])
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
     Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
+    //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
     stringstream ss;

@@ -164,8 +164,9 @@ public:
         }
       }
       // this line adds NANs ??? :
-      //addBTN(drawingPoints, drawingPoints[0], drawingPoints[drawingPoints.size()-1]); // BTN for the last point : connect end with start
+      addBTN(drawingPoints, drawingPoints[drawingPoints.size()-2], drawingPoints[0]); // BTN for the last point : connect end with start
       this->num_points = (int) drawingPoints.size()/4;
+      cout << "num_points" << this->num_points << endl;
       return drawingPoints;
     }
 
@@ -173,6 +174,8 @@ public:
 
       glm::vec3 current = pointToVec3(p_current);
       glm::vec3 previous = pointToVec3(p_previous);
+      //cout << "current" << " (" << current.x << ", " << current.y << ", " << current.z << ")" << endl;
+      //cout << "previous" << " (" << previous.x << ", " << previous.y << ", " << previous.z << ")" << endl;
       glm::vec3 T = normalize(current - previous); // Tangent
       glm::vec3 B = normalize(cross(T, current + previous)); // Binormal
       glm::vec3 N = normalize(cross(B,T));  // Normal
@@ -190,7 +193,7 @@ public:
         vertices[i*3] = points[i].x;
         vertices[i*3+1] = points[i].y;
         vertices[i*3+2] = points[i].z;
-        cout << "P" << i << " (" << points[i].x << ", " << points[i].y << ", " << points[i].z << ")" << endl;
+        //cout << "P" << i << " (" << points[i].x << ", " << points[i].y << ", " << points[i].z << ")" << endl;
       }
       // For each point, we have 4 vectors: Position, Binormal, Tangent, Normal
       cout << "Bézier points:  " << points.size() << endl << flush;
@@ -204,13 +207,16 @@ public:
 
       // position attribute
       glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)0);
-      // Binormal
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)3);
-      // Tangent
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)6);
-      // Normal
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)9);
       glEnableVertexAttribArray(0);
+      // Binormal
+      glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(3 * sizeof(float)));
+      glEnableVertexAttribArray(1);
+      // Tangent
+      glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(6 * sizeof(float)));
+      glEnableVertexAttribArray(2);
+      // Normal
+      glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 12 * sizeof(float), (void*)(9 * sizeof(float)));
+      glEnableVertexAttribArray(3);
     }
 
     glm::vec3 pointToVec3(point p) {
