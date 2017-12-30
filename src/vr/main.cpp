@@ -139,18 +139,20 @@ int main(int argc, char *argv[])
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
-    
+
+
+    Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
+
+
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
     hdrShader.use();
     hdrShader.setInt("scene", 0);
     hdrShader.setInt("bloomBlur", 1);
 
-
     Shader blurShader = createShader("blur.vert", "blur.frag");
     blurShader.use();
     blurShader.setInt("image", 0);
 
-    //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
     stringstream ss;
@@ -158,8 +160,8 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
 
-    //Circuit circuit = Circuit();
-    
+    Circuit circuit = Circuit();
+
     // load additionnal textures
     // -------------------------
     ss.str("");
@@ -182,21 +184,18 @@ int main(int argc, char *argv[])
     unsigned int toyboxDispTexture = loadTexture(ss.str().c_str());
     //unsigned int emissionMap = loadTexture(ss4.str().c_str());
 
-    // Shadow
+    // Lights
     // ------
-    // configure depth map FBO
     dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
         glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
         near_plane, far_plane);
-    
-    // configure cube depth map FBO
+
     PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
         glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(2.0f, 2.0f, 2.0f), 
         near_plane, far_plane, 
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
 
-    // configure cube depth map FBO for flashlight
     FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera, 
         glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f), 
         near_plane, far_plane, 
@@ -287,7 +286,7 @@ int main(int argc, char *argv[])
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
-        
+
         // render scene from light's point of view
         renderDepthMap(dirLight);
 
@@ -296,7 +295,7 @@ int main(int argc, char *argv[])
         {
             renderDepthMap(pointLights[i]);
         }
-        
+
         // point shadows rendering for flashlight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
@@ -321,7 +320,7 @@ int main(int argc, char *argv[])
         modelShader.setFloat("heightScale", heightScale);
         modelShader.setInt("parallax", 0);
         modelShader.setInt("material.texture_height1", 0);
-        
+
         // directional light
         dirLight->addToShader(modelShader);
 
@@ -330,13 +329,13 @@ int main(int argc, char *argv[])
         {
             pointLights[i]->addToShader(modelShader);
         }
-        
+
         // flashLight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
             flashLights[i]->addToShader(modelShader);
         }
-        
+
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -382,7 +381,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
         modelShader.setMat4("model", model);
-        
+
         normalMatrix = glm::mat3(transpose(inverse(model)));
         modelShader.setMat3("normalMatrix", normalMatrix);
         renderQuad();
@@ -393,7 +392,7 @@ int main(int argc, char *argv[])
         floorShader.setVec3("viewPos", camera.Position);
         floorShader.setFloat("material.shininess", 2.0f);
         floorShader.setFloat("far_plane", far_plane);
-        
+
         // directional light
         dirLight->addToShader(floorShader);
 
@@ -402,18 +401,18 @@ int main(int argc, char *argv[])
         {
             pointLights[i]->addToShader(floorShader);
         }
-        
+
         // flashLight
         for (unsigned int i = 0; i < flashLights.size(); ++i)
         {
             flashLights[i]->addToShader(floorShader);
         }
-        
+
         // view/projection transformations
         floorShader.setMat4("projection", projection);
         floorShader.setMat4("view", view);
 
-        
+
         floorShader.setInt("material.texture_diffuse1", 0);
         floorShader.setInt("material.texture_specular1", 0);
         floorShader.setInt("dirShadowMap", 1);
@@ -449,8 +448,8 @@ int main(int argc, char *argv[])
 
         // circuit
         // -------
-        
-        /*circuitShader.use();
+
+        circuitShader.use();
         // view/projection transformations
         circuitShader.setMat4("projection", projection);
         circuitShader.setMat4("view", view);
@@ -459,7 +458,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
-        circuit.Draw();*/
+        circuit.Draw();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -713,10 +712,10 @@ void renderDepthMap(PointLight* light)
         light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
     light->shader.setFloat("far_plane", light->far_plane);
     light->shader.setVec3("lightPos", light->position);
-    
+
     glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT); 
+    glClear(GL_DEPTH_BUFFER_BIT);
     renderSceneForDepth(light->shader);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -730,10 +729,10 @@ void renderDepthMap(FlashLight* light)
         light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
     light->shader.setFloat("far_plane", light->far_plane);
     light->shader.setVec3("lightPos", light->position);
-    
+
     glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT); 
+    glClear(GL_DEPTH_BUFFER_BIT);
     renderSceneForDepth(light->shader);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -842,12 +841,12 @@ void renderFloor()
     {
         float planeVertices[] = {
             // positions            // normals         // texcoords
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,  
-            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,  
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,  
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
 
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,  
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,  
+             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
              25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
         };
         // plane VAO
@@ -868,7 +867,7 @@ void renderFloor()
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
- 
+
 // render simple test quad
 unsigned int testQuadVAO = 0;
 unsigned int testQuadVBO;
@@ -915,7 +914,7 @@ void renderQuad()
         // texture coordinates
         glm::vec2 uv1(0.0f, 1.0f);
         glm::vec2 uv2(0.0f, 0.0f);
-        glm::vec2 uv3(1.0f, 0.0f);  
+        glm::vec2 uv3(1.0f, 0.0f);
         glm::vec2 uv4(1.0f, 1.0f);
         // normal vector
         glm::vec3 nm(0.0f, 0.0f, 1.0f);
