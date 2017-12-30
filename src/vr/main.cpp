@@ -29,6 +29,7 @@ void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);
 void renderSceneForDepth(Shader shader);
 void renderFloor();
+void renderTestQuad();
 void renderQuad();
 
 // settings
@@ -40,7 +41,12 @@ const float near_plane = 1.0f;
 const float far_plane = 25.0f;
 const char* dir;
 const char* objName;
+
+ // Effects parameters
 float heightScale = 0.1;
+bool hdr = false;
+bool hdrKeyPressed = false;
+float exposure = 1.0f;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -51,6 +57,7 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+bool firstFrame = true;
 
 // lighting
 Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
@@ -123,11 +130,22 @@ int main(int argc, char *argv[])
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
+    debugDepth.setFloat("near_plane", 1.0f);
+    debugDepth.setFloat("far_plane", 25.0f);
 
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
     
+    Shader hdrShader = createShader("hdr.vert", "hdr.frag");
+    hdrShader.use();
+    hdrShader.setInt("hdrBuffer", 0);
+
+    /*Shader pingpongShader = createShader("pingpong.vert", "pingpong.frag");
+    pingpongShader.use();
+    pingpongShader.setInt("colorBuffer", 0);*/
+    
+
     //Shader circuitShader = createShader("circuit.vert", "circuit.frag");
     // load models
     // -----------
@@ -181,6 +199,68 @@ int main(int argc, char *argv[])
         1.0f, 0.09f, 0.032f, 
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
+    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 
+        near_plane, far_plane, 
+        1.0f, 0.09f, 0.032f, 
+        glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
+    flashLights.push_back(flashLight2);
+
+    // configure floating point framebuffer
+    // ------------------------------------
+    unsigned int hdrFBO;
+    glGenFramebuffers(1, &hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    // create floating point color buffer
+    unsigned int colorBuffer;
+    glGenTextures(1, &colorBuffer);
+    glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+    // create depth buffer (renderbuffer) 
+    unsigned int rboDepth;  
+    glGenRenderbuffers(1, &rboDepth);   
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+    // attach buffers
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, colorBuffer, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "Framebuffer not complete! " << "HDR" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    unsigned int pingpongFBO[2];
+    unsigned int pingpongColorBuffer[2];
+    unsigned int pingpongRboDepth[2];
+    for(GLuint i = 0; i < 2; i++)
+    {
+        glGenFramebuffers(1, &pingpongFBO[i]);
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        // create floating point color buffer
+        
+        glGenTextures(1, &pingpongColorBuffer[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);    
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
+        // create depth buffer (renderbuffer) 
+          
+        glGenRenderbuffers(1, &pingpongRboDepth[i]);   
+        glBindRenderbuffer(GL_RENDERBUFFER, pingpongRboDepth[i]);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
+        // attach buffers
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, pingpongRboDepth[i]);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pingpongColorBuffer[i], 0); 
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete! " << "pingpong " << i << std::endl;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -204,6 +284,41 @@ int main(int argc, char *argv[])
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // eye adaptation
+        /*if (!firstFrame)
+        {
+            GLuint texWidth = SCR_WIDTH, texHeight = SCR_HEIGHT;
+            GLboolean change = true;
+            pingpongShader.use();
+            glActiveTexture(GL_TEXTURE0);
+
+            // Then pingpong between color buffers creating a smaller texture every time
+            while (texWidth > 1)
+            {
+                // first change texture size
+                glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[change ? 1 : 0]);
+                texWidth = texWidth / 2;
+                texHeight = texHeight / 2;
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth > 1 ? texWidth : 1, texHeight > 1 ? texHeight : 1, 0, GL_RGB, GL_FLOAT, NULL);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[change ? 1 : 0]);
+                glViewport(0, 0, texWidth, texHeight);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[change ? 0 : 1]);
+                renderTestQuad();
+                change = !change;
+            }
+
+            // Once done read the luminescence value of 1x1 texture
+            GLfloat luminescence[3];
+            glReadPixels(0, 0, 1, 1, GL_RGB, GL_FLOAT, &luminescence);
+            GLfloat lum = 0.2126 * luminescence[0] + 0.7152 * luminescence[1] + 0.0722 * luminescence[2];
+            exposure = std::lerp(exposure, 0.5 / lum, 0.05); // slowly adjust exposure based on average brightness
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        else
+            firstFrame = false;*/
+
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
         
@@ -225,6 +340,10 @@ int main(int argc, char *argv[])
         // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // bind HDR buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
@@ -279,6 +398,7 @@ int main(int argc, char *argv[])
         modelShader.setInt("dirShadowMap", 1);
         modelShader.setInt("pointLights[0].pointShadowMap", 2);
         modelShader.setInt("flashLights[0].flashShadowMap", 3);
+        modelShader.setInt("flashLights[1].flashShadowMap", 6);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, toyboxTexture);
         glActiveTexture(GL_TEXTURE1);
@@ -291,6 +411,8 @@ int main(int argc, char *argv[])
         glBindTexture(GL_TEXTURE_2D, toyboxNormalTexture);
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, toyboxDispTexture);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[1]->depthMap.map);
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
         modelShader.setMat4("model", model);
@@ -331,6 +453,7 @@ int main(int argc, char *argv[])
         floorShader.setInt("dirShadowMap", 1);
         floorShader.setInt("pointLights[0].pointShadowMap", 2);
         floorShader.setInt("flashLights[0].flashShadowMap", 3);
+        floorShader.setInt("flashLights[1].flashShadowMap", 4);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
@@ -339,21 +462,14 @@ int main(int argc, char *argv[])
         glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[0]->depthMap.map);
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[1]->depthMap.map);
         model = glm::mat4();
         floorShader.setMat4("model", model);
         normalMatrix = glm::mat3(transpose(inverse(model)));
         floorShader.setMat3("normalMatrix", normalMatrix);
         renderFloor();
 
-        // Debug depth map
-        // ---------------------------------------------
-        debugDepth.use();
-        debugDepth.setFloat("near_plane", 1.0f);
-        debugDepth.setFloat("far_plane", 25.0f);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
-        //renderQuad();
-        
         // circuit
         // -------
         
@@ -368,6 +484,38 @@ int main(int argc, char *argv[])
         circuitShader.setMat4("model", model);
         circuit.Draw();*/
 
+        // unbind HDR buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Reset color buffer dimensions
+        /*for (GLuint i = 0; i < 2; i++)
+        {
+            glBindTexture(GL_TEXTURE_2D, pingpongColorBuffer[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+        }*/
+
+        // Draw result
+        //glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[0]);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        hdrShader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        hdrShader.setInt("hdr", hdr);
+        hdrShader.setFloat("exposure", exposure);
+        renderTestQuad();
+
+        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Debug values
+        //std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
+        //std::cout << "heightScale: " << heightScale << std::endl;
+        // Debug depth map
+        // ---------------------------------------------
+        /*debugDepth.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
+        renderTestQuad();*/
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -416,12 +564,34 @@ void processInput(GLFWwindow *window)
         else
             heightScale = 0.0f;
     }
-    else if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+    else if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
     {
         if (heightScale < 1.0f)
             heightScale += 0.0005f;
         else
             heightScale = 1.0f;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !hdrKeyPressed)
+    {
+        hdr = !hdr;
+        hdrKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    {
+        hdrKeyPressed = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+    {
+        if (exposure > 0.0f)
+            exposure -= 0.001f;
+        else
+            exposure = 0.0f;
+    }
+    else if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+    {
+        exposure += 0.001f;
     }
 }
 
@@ -623,6 +793,37 @@ void renderFloor()
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
+ 
+// render simple test quad
+unsigned int testQuadVAO = 0;
+unsigned int testQuadVBO;
+void renderTestQuad()
+{
+    if (testQuadVAO == 0)
+    {
+        float testQuadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &testQuadVAO);
+        glGenBuffers(1, &testQuadVBO);
+        glBindVertexArray(testQuadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, testQuadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(testQuadVertices), &testQuadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(testQuadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
 // renderQuad() renders a 1x1 XY quad in NDC
 // -----------------------------------------
 unsigned int quadVAO = 0;
