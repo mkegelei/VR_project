@@ -118,6 +118,11 @@ public:
 
   void Draw() {
     glBindVertexArray(this->VAO);
+    glDrawArrays(GL_LINE_STRIP, 0, this->num_points);
+  }
+
+  void DrawBTN() {
+    glBindVertexArray(this->VAO);
     glDrawArrays(GL_POINTS, 0, this->num_points);
   }
 
