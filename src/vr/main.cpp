@@ -141,8 +141,7 @@ int main(int argc, char *argv[])
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
 
-    Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitLaser.geom");
-    Shader circuitBTNShader = createShader("circuitLaser.vert", "circuitBTN.frag", "circuitBTN.geom");
+    Shader circuitShader = createShader("circuitLaser.vert", "circuitBTN.frag", "circuitLaser.geom");
 
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
@@ -187,26 +186,26 @@ int main(int argc, char *argv[])
 
     // Lights
     // ------
-    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
+    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f),
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f),
         near_plane, far_plane);
 
-    PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(2.0f, 2.0f, 2.0f), 
-        near_plane, far_plane, 
+    PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos,
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(2.0f, 2.0f, 2.0f),
+        near_plane, far_plane,
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
 
-    FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera, 
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f), 
-        near_plane, far_plane, 
-        1.0f, 0.09f, 0.032f, 
+    FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera,
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
-    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.5f, 1.5f, 1.5f), 
-        near_plane, far_plane, 
-        1.0f, 0.09f, 0.032f, 
+    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.5f, 1.5f, 1.5f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight2);
 
@@ -229,13 +228,13 @@ int main(int argc, char *argv[])
         // attach texture to framebuffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
     }
-    // create depth buffer (renderbuffer) 
-    unsigned int rboDepth;  
-    glGenRenderbuffers(1, &rboDepth);   
+    // create depth buffer (renderbuffer)
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
     unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments);
     // finally check if framebuffer is complete
@@ -243,11 +242,7 @@ int main(int argc, char *argv[])
         std::cout << "Framebuffer not complete! " << "HDR" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-<<<<<<< HEAD
     // ping-pong-framebuffer for blurring
-=======
-
->>>>>>> dev
     unsigned int pingpongFBO[2];
     unsigned int pingpongColorbuffers[2];
     glGenFramebuffers(2, pingpongFBO);
@@ -306,7 +301,7 @@ int main(int argc, char *argv[])
         {
             renderDepthMap(flashLights[i]);
         }
-        
+
         // 2.1 render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -465,29 +460,18 @@ int main(int argc, char *argv[])
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
         circuit.Draw();
-        
-
-        circuitBTNShader.use();
-        // view/projection transformations
-        circuitShader.setMat4("projection", projection);
-        circuitShader.setMat4("view", view);
-
-        // render the loaded model
-        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitShader.setMat4("model", model);
-        circuit.DrawBTN();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 2.2 blur bright fragments with two-pass Gaussian Blur 
+        // 2.2 blur bright fragments with two-pass Gaussian Blur
         // --------------------------------------------------
         bool horizontal = true, first_iteration = true;
         unsigned int amount = 10;
         blurShader.use();
         glActiveTexture(GL_TEXTURE0);
-        
+
         for (unsigned int i = 0; i < amount; i++)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
@@ -786,7 +770,7 @@ void renderCube()
             // back face
             -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
              1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
              1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
             -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
             -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
@@ -807,10 +791,10 @@ void renderCube()
             // right face
              1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
              1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right
              1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
              1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left
             // bottom face
             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
@@ -821,10 +805,10 @@ void renderCube()
             // top face
             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right
              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left
         };
         glGenVertexArrays(1, &cubeVAO);
         glGenBuffers(1, &cubeVBO);
