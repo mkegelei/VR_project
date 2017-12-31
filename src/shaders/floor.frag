@@ -180,8 +180,8 @@ vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
-    //float shadow = FlashShadowCalculation(fragPos, light);
-    float shadow = 0.0f;
+    float shadow = FlashShadowCalculation(fragPos, light);
+    //float shadow = 0.0f;
     return (ambient + (1.0 - shadow) * (diffuse + specular));
 }
 
