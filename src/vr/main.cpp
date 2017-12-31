@@ -24,6 +24,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
 void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
 
-    Shader circuitShader = createShader("circuitLaser.vert", "circuitBTN.frag");
+    Shader circuitShader = createShader("circuitLaser.vert", "circuitLaser.frag");
     Shader circuitBTNShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
 
 
@@ -450,18 +451,6 @@ int main(int argc, char *argv[])
         // circuit
         // -------
 
-        circuitShader.use();
-        // view/projection transformations
-        circuitShader.setMat4("projection", projection);
-        circuitShader.setMat4("view", view);
-
-        // render the loaded model
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
-        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitShader.setMat4("model", model);
-        circuit.DrawCylinders();
-
         circuitBTNShader.use();
         circuitBTNShader.setMat4("projection", projection);
         circuitBTNShader.setMat4("view", view);
@@ -471,7 +460,24 @@ int main(int argc, char *argv[])
         model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitBTNShader.setMat4("model", model);
-        circuit.DrawBTN();
+        //circuit.DrawBTN();
+
+
+        // Render Circuit
+        circuitShader.use();
+        circuitShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
+        // view/projection transformations
+        circuitShader.setMat4("projection", projection);
+        circuitShader.setMat4("view", view);
+
+        // render the loaded model
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitShader.setMat4("model", model);
+
+        circuitShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
+        circuit.DrawCylinders();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -480,7 +486,7 @@ int main(int argc, char *argv[])
         // 2.2 blur bright fragments with two-pass Gaussian Blur
         // --------------------------------------------------
         bool horizontal = true, first_iteration = true;
-        unsigned int amount = 10;
+        unsigned int amount = 15;
         blurShader.use();
         glActiveTexture(GL_TEXTURE0);
 
@@ -507,6 +513,7 @@ int main(int argc, char *argv[])
         hdrShader.setInt("bloom", bloom);
         hdrShader.setFloat("exposure", exposure);
         renderTestQuad();
+
 
         // Debug values
         //std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
@@ -703,6 +710,7 @@ Shader createShader(const char* vert, const char* frag, const char* geom)
 
     return *shader;
 }
+
 
 void renderDepthMap(DirLight* dirLight)
 {

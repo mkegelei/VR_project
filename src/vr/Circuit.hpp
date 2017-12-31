@@ -3,6 +3,7 @@
 // Inspired from http://devmag.org.za/2011/04/05/bzier-curves-a-tutorial/ and https://gist.github.com/epatel/1107754
 // Continuous bezier curve http://www.algosome.com/articles/continuous-bezier-curve-line.html
 #define SEGMENTS_PER_CURVE 30
+#define TRAJECTORY_SEGMENTS_PER_CURVE 100
 #define M_PI 3.1415926535897932384626433832795
 
 #include <map>
@@ -76,7 +77,6 @@ public:
 
     };
 
-
     // convert array of floats to vector of points
     vector<glm::vec3>controls; // temp control points
     for (int i = 0; i < num_points; i++) {
@@ -88,7 +88,12 @@ public:
     }
 
     this->setupControlPoints(controls);
-    this->computePoints();
+    this->points = this->computePoints(SEGMENTS_PER_CURVE);
+    this->trajectory = this->computePoints(TRAJECTORY_SEGMENTS_PER_CURVE);
+    this->num_points = (int) this->points.size()/4;
+    cout << "num_points " << this->num_points << endl;
+    cout << "num_trajectory_points " << this->trajectory.size()/4 << endl;
+
     this->computeCylindersVertices(this->cylinderVertices1, 0.2);
     this->computeCylindersVertices(this->cylinderVertices2, -0.2);
     this->setupCylinderDrawing(this->VAOCylinder1, this->VBOCylinder1, this->cylinderVertices1);
@@ -115,9 +120,11 @@ public:
   }
 
 
+
   private:
     vector<glm::vec3>controlPoints;
     vector<glm::vec3>points;
+    vector<glm::vec3>trajectory; // model trajectory
     vector<glm::vec3>cylinderVertices1;
     vector<glm::vec3>cylinderVertices2;
     unsigned int VBO, VAO; // Main curve
@@ -148,10 +155,14 @@ public:
         cout << "P" << i << " (" << this->controlPoints[i].x << ", " << this->controlPoints[i].y << ", " << this->controlPoints[i].z << ")" << endl;
       }
     }
+    void computeTrajectory() {
+
+    }
 
     // Compute points for the Bézier curves
-    vector<glm::vec3> computePoints()
+    vector<glm::vec3> computePoints(float nbr_segment)
     {
+      vector<glm::vec3> points;
       for(unsigned int i = 0; i < this->controlPoints.size() - 3; i+=3) {
         glm::vec3 p0 = this->controlPoints[i];
         glm::vec3 p1 = this->controlPoints[i + 1];
@@ -167,9 +178,9 @@ public:
           points.push_back(b.calc(0));
         }
 
-        for(int j = 1; j <= SEGMENTS_PER_CURVE; j++)
+        for(int j = 1; j <= nbr_segment; j++)
         {
-          float t = j / (float) SEGMENTS_PER_CURVE;
+          float t = j / (float) nbr_segment;
           glm::vec3 p = b.calc(t);
           addBTN(points, p, points[points.size()-1]);
           points.push_back(p);
@@ -177,8 +188,7 @@ public:
       }
       // this line adds NANs ??? :
       addBTN(points, points[points.size()-2], points[0]); // BTN for the last glm::vec3 : connect end with start
-      this->num_points = (int) points.size()/4;
-      cout << "num_points " << this->num_points << endl;
+
       return points;
     }
 
