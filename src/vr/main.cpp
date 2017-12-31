@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
         1.0f, 0.09f, 0.032f, 
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
-    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
+    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(0.5f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
         glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.2f, 1.2f, 1.2f), glm::vec3(1.2f, 1.2f, 1.2f), 
         near_plane, far_plane, 
         1.0f, 0.09f, 0.032f, 
