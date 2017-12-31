@@ -485,7 +485,7 @@ int main(int argc, char *argv[])
         // 2.2 blur bright fragments with two-pass Gaussian Blur
         // --------------------------------------------------
         bool horizontal = true, first_iteration = true;
-        unsigned int amount = 15;
+        unsigned int amount = 10;
         blurShader.use();
         glActiveTexture(GL_TEXTURE0);
 
