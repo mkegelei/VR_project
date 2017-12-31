@@ -120,11 +120,11 @@ public:
   }
 
   glm::vec3 getTrajectoryPos(int index) {
-    return this->trajectory(index*4);
+    return this->trajectory[index*4];
   }
 
   glm::vec3 getTrajectoryNormal(int index) {
-    return this->trajectory(index*4+3);
+    return this->trajectory[index*4+3];
   }
 
 

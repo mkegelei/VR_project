@@ -24,6 +24,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
 void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);
@@ -461,22 +462,8 @@ int main(int argc, char *argv[])
         circuitBTNShader.setMat4("model", model);
         //circuit.DrawBTN();
 
+        renderCircuit( circuit, circuitShader, projection, view);
 
-        // Render Circuit
-        circuitShader.use();
-        circuitShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
-        // view/projection transformations
-        circuitShader.setMat4("projection", projection);
-        circuitShader.setMat4("view", view);
-
-        // render the loaded model
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
-        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitShader.setMat4("model", model);
-
-        circuitShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
-        circuit.DrawCylinders();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -710,6 +697,22 @@ Shader createShader(const char* vert, const char* frag, const char* geom)
     return *shader;
 }
 
+void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view) {
+  // Render Circuit
+  shader.use();
+  // view/projection transformations
+  shader.setMat4("projection", projection);
+  shader.setMat4("view", view);
+
+  // render the loaded model
+  glm::mat4 model = glm::mat4();
+  model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+  //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+  shader.setMat4("model", model);
+
+  shader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
+  circuit.DrawCylinders();
+}
 
 void renderDepthMap(DirLight* dirLight)
 {
