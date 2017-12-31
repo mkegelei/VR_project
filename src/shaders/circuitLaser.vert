@@ -1,30 +1,14 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aBinormal;
-layout (location = 2) in vec3 aTangent;
-layout (location = 3) in vec3 aNormal;
-
-out VS_OUT {
-  vec3 binormal;
-  vec3 tangent;
-  vec3 normal;
-} vs_out;
-
-out vec3 fColor;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-
+out vec4 fColor;
 
 void main()
 {
-    fColor = vec3(1.0, 0.0, 0.0);
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
-    mat3 normalMatrix = mat3(transpose(inverse(view * model)));
-    vs_out.binormal = normalize(vec3(projection * vec4(normalMatrix * aBinormal, 1.0)));
-    vs_out.tangent = normalize(vec3(projection * vec4(normalMatrix * aTangent, 1.0)));
-    vs_out.normal = normalize(vec3(projection * vec4(normalMatrix * aNormal, 1.0)));
-
+	gl_Position = projection * view * model * vec4(aPos, 1.0);
+  fColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
 
-    Shader circuitShader = createShader("circuitLaser.vert", "circuitBTN.frag", "circuitLaser.geom");
+    Shader circuitShader = createShader("circuitLaser.vert", "circuitBTN.frag");
 
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
         model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
-        circuit.Draw();
+        circuit.DrawCylinders();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
