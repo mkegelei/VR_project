@@ -24,7 +24,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
-void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
 void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);

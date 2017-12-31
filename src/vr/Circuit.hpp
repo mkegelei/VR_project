@@ -119,6 +119,13 @@ public:
     glDrawArrays(GL_POINTS, 0, this->num_points);
   }
 
+  glm::vec3 getTrajectoryPos(int index) {
+    return this->trajectory(index*4);
+  }
+
+  glm::vec3 getTrajectoryNormal(int index) {
+    return this->trajectory(index*4+3);
+  }
 
 
   private:
