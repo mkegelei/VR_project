@@ -25,6 +25,7 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
 float lerp(float a, float b, float f);
+void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
 void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
 void renderDepthMap(FlashLight* light);
@@ -130,8 +131,7 @@ int main(int argc, char *argv[])
     Shader modelShader = createShader("test1.vert", "test1.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
-    //Shader circuitShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
-
+    
     Shader debugDepth = createShader("debugDepth.vert", "debugDepth.frag");
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
@@ -141,6 +141,9 @@ int main(int argc, char *argv[])
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
+
+    //Shader circuitShader = createShader("circuitLaser.vert", "circuitLaser.frag");
+    //Shader circuitBTNShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
     hdrShader.use();
@@ -188,8 +191,8 @@ int main(int argc, char *argv[])
 
     // Lights
     // ------
-    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f), 
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f), 
+    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f),
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f),
         near_plane, far_plane);
 
     PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos, 
@@ -230,13 +233,13 @@ int main(int argc, char *argv[])
         // attach texture to framebuffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
     }
-    // create depth buffer (renderbuffer) 
-    unsigned int rboDepth;  
-    glGenRenderbuffers(1, &rboDepth);   
+    // create depth buffer (renderbuffer)
+    unsigned int rboDepth;
+    glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
     unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(2, attachments);
     // finally check if framebuffer is complete
@@ -303,7 +306,7 @@ int main(int argc, char *argv[])
         {
             renderDepthMap(flashLights[i]);
         }
-        
+
         // 2.1 render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -443,18 +446,24 @@ int main(int argc, char *argv[])
 
         // circuit
         // -------
-        /*
-        circuitShader.use();
-        // view/projection transformations
-        circuitShader.setMat4("projection", projection);
-        circuitShader.setMat4("view", view);
+/*
+        circuitBTNShader.use();
+        circuitBTNShader.setMat4("projection", projection);
+        circuitBTNShader.setMat4("view", view);
 
         // render the loaded model
         model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitShader.setMat4("model", model);
-        circuit.Draw();*/
+        circuitBTNShader.setMat4("model", model);
+        //circuit.DrawBTN();
 
+
+        // Render Circuit
+        circuit.Draw();
+        circuitShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
+        circuit.DrawCylinders();
+*/
         // also draw the lamp object
         lampShader.use();
         lampShader.setMat4("projection", projection);
@@ -470,13 +479,13 @@ int main(int argc, char *argv[])
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 2.2 blur bright fragments with two-pass Gaussian Blur 
+        // 2.2 blur bright fragments with two-pass Gaussian Blur
         // --------------------------------------------------
         bool horizontal = true, first_iteration = true;
-        unsigned int amount = 10;
+        unsigned int amount = 15;
         blurShader.use();
         glActiveTexture(GL_TEXTURE0);
-        
+
         for (unsigned int i = 0; i < amount; i++)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
@@ -500,6 +509,7 @@ int main(int argc, char *argv[])
         hdrShader.setInt("bloom", bloom);
         hdrShader.setFloat("exposure", exposure);
         renderTestQuad();
+
 
         // Debug values
         //std::cout << "hdr: " << (hdr ? "on" : "off") << "| exposure: " << exposure << std::endl;
@@ -782,7 +792,7 @@ void renderCube()
             // back face
             -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
              1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right
              1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
             -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
             -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
@@ -803,10 +813,10 @@ void renderCube()
             // right face
              1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
              1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right
              1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
              1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left
             // bottom face
             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
@@ -817,10 +827,10 @@ void renderCube()
             // top face
             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right
              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left
         };
         glGenVertexArrays(1, &cubeVAO);
         glGenBuffers(1, &cubeVBO);
