@@ -6,13 +6,6 @@
 #include <vector>
 #include <Shader.hpp>
 
-
-struct point {
-  float x;
-  float y;
-  float z;
-};
-
 struct bezier {
   float x0;
   float y0;
@@ -26,11 +19,11 @@ struct bezier {
   float az;
   float bz;
   float cz;
-  void setup(point p0, point p1, point p2, point p3);
-  point calc(float t);
+  void setup(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3);
+  glm::vec3 calc(float t);
 };
 
-void bezier::setup(point p0, point p1, point p2, point p3) {
+void bezier::setup(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3) {
   x0 = p0.x;
   y0 = p0.y;
   z0 = p0.z;
@@ -45,8 +38,8 @@ void bezier::setup(point p0, point p1, point p2, point p3) {
   az = p3.z - p0.z - cz - bz;
 }
 
-point bezier::calc(float t) {
-  point p;
+glm::vec3 bezier::calc(float t) {
+  glm::vec3 p;
   float t2 = t*t;
   float t3 = t2*t;
   p.x = ax*t3 + bx*t2 + cx*t + x0;
@@ -82,9 +75,9 @@ public:
 
 
     // convert array of floats to vector of points
-    vector<point> controls; // temp control points
+    vector<glm::vec3>controls; // temp control points
     for (int i = 0; i < num_points; i++) {
-      point p;
+      glm::vec3 p;
       p.x = points[i*3];
       p.y = points[i*3+1];
       p.z = points[i*3+2];
@@ -99,9 +92,9 @@ public:
   		this->controlPoints.push_back(center(controls[i+1], controls[i+2]));
   	}
     this->controlPoints.push_back(controls[controls.size()-1]);
-    point p; // point to connect the start and the end of the loop with the same gradient
-    point start = controls[0];
-    point second = controls[1];
+    glm::vec3 p; // glm::vec3 to connect the start and the end of the loop with the same gradient
+    glm::vec3 start = controls[0];
+    glm::vec3 second = controls[1];
     p.x = 2*start.x - second.x;
     p.y = 2*start.y - second.y;
     p.z = 2*start.z - second.z;
@@ -128,12 +121,15 @@ public:
 
 
   private:
-    vector<point> controlPoints;
+    vector<glm::vec3>controlPoints;
+    vector<glm::vec3>points;
+    vector<glm::vec3>cylinderVertices1;
+    vector<glm::vec3>cylinderVertices2;
     unsigned int VBO, VAO;
     unsigned int num_points;
 
-    point center(point p1, point p2) {
-      point p;
+    glm::vec3 center(glm::vec3 p1, glm::vec3 p2) {
+      glm::vec3 p;
       p.x = (p1.x + p2.x)/2;
       p.y = (p1.y + p2.y)/2;
       p.z = (p1.z + p2.z)/2;
@@ -141,41 +137,40 @@ public:
     }
 
     // Compute points for the Bézier curves
-    vector<point> getPoints()
+    vector<glm::vec3> getPoints()
     {
-      vector<point> drawingPoints;
       for(unsigned int i = 0; i < this->controlPoints.size() - 3; i+=3) {
-        point p0 = this->controlPoints[i];
-        point p1 = this->controlPoints[i + 1];
-        point p2 = this->controlPoints[i + 2];
-        point p3 = this->controlPoints[i + 3];
+        glm::vec3 p0 = this->controlPoints[i];
+        glm::vec3 p1 = this->controlPoints[i + 1];
+        glm::vec3 p2 = this->controlPoints[i + 2];
+        glm::vec3 p3 = this->controlPoints[i + 3];
 
         bezier b;
         b.setup(p0, p1, p2, p3);
 
         if(i == 0) //Only do this for the first endpoint.
                    //When i != 0, this coincides with the end
-                   //point of the previous segment
+                   //glm::vec3 of the previous segment
         {
-          drawingPoints.push_back(b.calc(0));
+          points.push_back(b.calc(0));
         }
 
         for(int j = 1; j <= SEGMENTS_PER_CURVE; j++)
         {
           float t = j / (float) SEGMENTS_PER_CURVE;
-          point p = b.calc(t);
-          addBTN(drawingPoints, p, drawingPoints[drawingPoints.size()-1]);
-          drawingPoints.push_back(p);
+          glm::vec3 p = b.calc(t);
+          addBTN(points, p, points[points.size()-1]);
+          points.push_back(p);
         }
       }
       // this line adds NANs ??? :
-      addBTN(drawingPoints, drawingPoints[drawingPoints.size()-2], drawingPoints[0]); // BTN for the last point : connect end with start
-      this->num_points = (int) drawingPoints.size()/4;
+      addBTN(points, points[points.size()-2], points[0]); // BTN for the last glm::vec3 : connect end with start
+      this->num_points = (int) points.size()/4;
       cout << "num_points" << this->num_points << endl;
-      return drawingPoints;
+      return points;
     }
 
-    void addBTN(vector<point> &points, point p_current, point p_previous) {
+    void addBTN(vector<glm::vec3>&points, glm::vec3 p_current, glm::vec3 p_previous) {
 
       glm::vec3 current = pointToVec3(p_current);
       glm::vec3 previous = pointToVec3(p_previous);
@@ -191,9 +186,9 @@ public:
     }
 
     void setup() {
-      vector<point> points = this->getPoints();
+      this->getPoints();
       float vertices[points.size()*3];
-      // Convert vector<point> to float array
+      // Convert vector<glm::vec3>to float array
       for (unsigned int i = 0; i < points.size(); i++) {
         vertices[i*3] = points[i].x;
         vertices[i*3+1] = points[i].y;
@@ -224,12 +219,12 @@ public:
       glEnableVertexAttribArray(3);
     }
 
-    glm::vec3 pointToVec3(point p) {
+    glm::vec3 pointToVec3(glm::vec3 p) {
       return glm::vec3(p.x, p.y, p.z);
     }
 
-    point vec3ToPoint(glm::vec3 v) {
-      point p;
+    glm::vec3 vec3ToPoint(glm::vec3 v) {
+      glm::vec3 p;
       p.x = v[0];
       p.y = v[1];
       p.z = v[2];
