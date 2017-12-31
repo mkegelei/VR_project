@@ -24,6 +24,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+float lerp(float a, float b, float f);
 void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
 void renderDepthMap(DirLight* light);
 void renderDepthMap(PointLight* light);
@@ -141,15 +142,17 @@ int main(int argc, char *argv[])
 
     Shader depthCubeShader = createShader("depthCubeShader.vert", "depthCubeShader.frag", "depthCubeShader.geom");
 
-
     Shader circuitShader = createShader("circuitLaser.vert", "circuitLaser.frag");
     Shader circuitBTNShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
-
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
     hdrShader.use();
     hdrShader.setInt("scene", 0);
     hdrShader.setInt("bloomBlur", 1);
+
+    Shader averageShader = createShader("pingpong.vert", "pingpong.frag");
+    averageShader.use();
+    averageShader.setInt("image", 0);
 
     Shader blurShader = createShader("blur.vert", "blur.frag");
     blurShader.use();
@@ -193,19 +196,19 @@ int main(int argc, char *argv[])
         near_plane, far_plane);
 
     PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos,
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(2.0f, 2.0f, 2.0f),
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.8f, 1.8f, 1.8f),
         near_plane, far_plane,
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
 
     FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera,
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(2.0f, 2.0f, 2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(1.6f, 1.6f, 1.6f),
         near_plane, far_plane,
         1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
     FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.5f, 1.5f, 1.5f),
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.2f, 1.2f, 1.2f), glm::vec3(1.2f, 1.2f, 1.2f),
         near_plane, far_plane,
         1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
@@ -309,6 +312,9 @@ int main(int argc, char *argv[])
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         // bind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -352,8 +358,9 @@ int main(int argc, char *argv[])
         glm::mat3 normalMatrix = glm::mat3(transpose(inverse(model)));
         modelShader.setMat3("normalMatrix", normalMatrix);
 
+        glEnable(GL_CULL_FACE);
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights);
-
+        glDisable(GL_CULL_FACE);
         // Draw brickwall
         modelShader.setInt("parallax", 1);
         modelShader.setFloat("material.shininess", 2.0f);
@@ -437,6 +444,24 @@ int main(int argc, char *argv[])
         floorShader.setMat3("normalMatrix", normalMatrix);
         renderFloor();
 
+        // circuit
+        // -------
+
+        /*
+        circuitBTNShader.use();
+        circuitBTNShader.setMat4("projection", projection);
+        circuitBTNShader.setMat4("view", view);
+
+        // render the loaded model
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitBTNShader.setMat4("model", model);
+        circuit.DrawBTN();
+        */
+        renderCircuit( circuit, circuitShader, projection, view);
+
+
         // also draw the lamp object
         lampShader.use();
         lampShader.setMat4("projection", projection);
@@ -448,23 +473,6 @@ int main(int argc, char *argv[])
         lampShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
         renderCube();
 
-        // circuit
-        // -------
-
-        circuitBTNShader.use();
-        circuitBTNShader.setMat4("projection", projection);
-        circuitBTNShader.setMat4("view", view);
-
-        // render the loaded model
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
-        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitBTNShader.setMat4("model", model);
-        //circuit.DrawBTN();
-
-        renderCircuit( circuit, circuitShader, projection, view);
-
-
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -472,7 +480,7 @@ int main(int argc, char *argv[])
         // 2.2 blur bright fragments with two-pass Gaussian Blur
         // --------------------------------------------------
         bool horizontal = true, first_iteration = true;
-        unsigned int amount = 15;
+        unsigned int amount = 10;
         blurShader.use();
         glActiveTexture(GL_TEXTURE0);
 
@@ -714,6 +722,11 @@ void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::ma
   circuit.DrawCylinders();
 }
 
+float lerp(float a, float b, float f)
+{
+    return a + f * (b - a);
+}
+
 void renderDepthMap(DirLight* dirLight)
 {
     dirLight->updateLightVariables();
@@ -767,9 +780,11 @@ void renderSceneForDepth(Shader shader)
     model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
     //shader.use();
     shader.setMat4("model", model);
+    glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     ourModel.DrawForDepth();
     glCullFace(GL_BACK);
+    glDisable(GL_CULL_FACE);
     model = glm::mat4();
     shader.setMat4("model", model);
     renderFloor();

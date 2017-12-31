@@ -4,7 +4,7 @@
 // Continuous bezier curve http://www.algosome.com/articles/continuous-bezier-curve-line.html
 #define SEGMENTS_PER_CURVE 30
 #define TRAJECTORY_SEGMENTS_PER_CURVE 100
-#define M_PI 3.1415926535897932384626433832795
+//#define M_PI 3.1415926535897932384626433832795
 
 #include <map>
 #include <vector>
@@ -185,7 +185,7 @@ public:
           points.push_back(b.calc(0));
         }
 
-        for(int j = 1; j <= nbr_segment; j++)
+        for(unsigned int j = 1; j <= nbr_segment; j++)
         {
           float t = j / (float) nbr_segment;
           glm::vec3 p = b.calc(t);
@@ -203,7 +203,7 @@ public:
       const float radius = 0.1;
       const int slices = 6;
       const float dtheta = 2.0*M_PI/float(slices);
-      for (int j=0;  j < this->points.size()-4; j+=4) {
+      for (unsigned int j=0;  j < this->points.size()-4; j+=4) {
 
         glm::vec3 binormalStart = this->points[j+1];
         glm::vec3 binormalEnd = this->points[j+5];
