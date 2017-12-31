@@ -142,6 +142,7 @@ int main(int argc, char *argv[])
 
 
     Shader circuitShader = createShader("circuitLaser.vert", "circuitBTN.frag");
+    Shader circuitBTNShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
 
 
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
@@ -460,6 +461,17 @@ int main(int argc, char *argv[])
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitShader.setMat4("model", model);
         circuit.DrawCylinders();
+
+        circuitBTNShader.use();
+        circuitBTNShader.setMat4("projection", projection);
+        circuitBTNShader.setMat4("view", view);
+
+        // render the loaded model
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+        circuitBTNShader.setMat4("model", model);
+        circuit.DrawBTN();
 
         // unbind HDR buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);

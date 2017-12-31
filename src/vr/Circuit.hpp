@@ -89,8 +89,8 @@ public:
 
     this->setupControlPoints(controls);
     this->computePoints();
-    this->computeCylindersVertices(this->cylinderVertices1);
-    this->computeCylindersVertices(this->cylinderVertices2);
+    this->computeCylindersVertices(this->cylinderVertices1, 0.2);
+    this->computeCylindersVertices(this->cylinderVertices2, -0.2);
     this->setupCylinderDrawing(this->VAOCylinder1, this->VBOCylinder1, this->cylinderVertices1);
     this->setupCylinderDrawing(this->VAOCylinder2, this->VBOCylinder2, this->cylinderVertices2);
     this->setupDrawing();
@@ -105,8 +105,8 @@ public:
   void DrawCylinders() {
     glBindVertexArray(this->VAOCylinder1);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, this->num_vertices_cylinder);
-    //glBindVertexArray(this->VAOCylinder2);
-    //glDrawArrays(GL_TRIANGLE_STRIP, 0, this->num_vertices_cylinder);
+    glBindVertexArray(this->VAOCylinder2);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, this->num_vertices_cylinder);
   }
 
   void DrawBTN() {
@@ -182,23 +182,28 @@ public:
       return points;
     }
 
-    void computeCylindersVertices(vector<glm::vec3> &cylinderVertices) {
-      const float radius = 0.3;
+    void computeCylindersVertices(vector<glm::vec3> &cylinderVertices, const float offset) {
+      const float radius = 0.1;
       const int slices = 6;
       const float dtheta = 2.0*M_PI/float(slices);
       for (int j=0;  j < this->points.size()-4; j+=4) {
-
-        glm::vec3 start = this->points[j];
-        glm::vec3 end = this->points[j+4];
-        cout << "P start" << j << " (" << start.x << ", " << start.y << ", " << start.z << ")" << endl;
-        cout << "P end" << j << " (" << end.x << ", " << end.y << ", " << end.z << ")" << endl;
 
         glm::vec3 binormalStart = this->points[j+1];
         glm::vec3 binormalEnd = this->points[j+5];
 
         glm::vec3 normalStart = this->points[j+3];
         glm::vec3 normalEnd = this->points[j+7];
-        cout << "Cylinder " << j << endl << flush;
+
+        glm::vec3 offset_start = normalStart*offset;
+        glm::vec3 offset_end = normalEnd*offset;
+
+        glm::vec3 start = this->points[j] + offset_start;
+        glm::vec3 end = this->points[j+4] + offset_end;
+        //cout << "P start" << j << " (" << start.x << ", " << start.y << ", " << start.z << ")" << endl;
+        //cout << "P end" << j << " (" << end.x << ", " << end.y << ", " << end.z << ")" << endl;
+
+
+        //cout << "Cylinder " << j << endl << flush;
         for(int i=0; i<slices; i++) {
 
           float theta = dtheta*float(i);
@@ -220,10 +225,10 @@ public:
           cylinderVertices.push_back(D);
           cylinderVertices.push_back(A);
 
-          cout << "PA" << i << " (" << A.x << ", " << A.y << ", " << A.z << ")" << endl;
-          cout << "PB" << i << " (" << B.x << ", " << B.y << ", " << B.z << ")" << endl;
-          cout << "PC" << i << " (" << C.x << ", " << C.y << ", " << C.z << ")" << endl;
-          cout << "PD" << i << " (" << D.x << ", " << D.y << ", " << D.z << ")" << endl;
+          //cout << "PA" << i << " (" << A.x << ", " << A.y << ", " << A.z << ")" << endl;
+          //cout << "PB" << i << " (" << B.x << ", " << B.y << ", " << B.z << ")" << endl;
+          //cout << "PC" << i << " (" << C.x << ", " << C.y << ", " << C.z << ")" << endl;
+          //cout << "PD" << i << " (" << D.x << ", " << D.y << ", " << D.z << ")" << endl;
 
         }
       }

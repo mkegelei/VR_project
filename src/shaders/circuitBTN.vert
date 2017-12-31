@@ -20,11 +20,10 @@ uniform mat4 projection;
 
 void main()
 {
-    fColor = vec3(1.0, 0.0, 0.0);
     gl_Position = projection * view * model * vec4(aPos, 1.0);
     mat3 normalMatrix = mat3(transpose(inverse(view * model)));
     vs_out.binormal = normalize(vec3(projection * vec4(normalMatrix * aBinormal, 1.0)));
     vs_out.tangent = normalize(vec3(projection * vec4(normalMatrix * aTangent, 1.0)));
     vs_out.normal = normalize(vec3(projection * vec4(normalMatrix * aNormal, 1.0)));
-    
+
 }
