@@ -65,6 +65,7 @@ float lastFrame = 0.0f;
 
 // lighting
 Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
+glm::vec3 circuitPos = glm::vec3(0.0f, 1.8f, 0.0f);
 //std::vector<DirLight> dirLights;
 DirLight* dirLight;
 unsigned int plId = 0;
@@ -150,10 +151,6 @@ int main(int argc, char *argv[])
     hdrShader.setInt("scene", 0);
     hdrShader.setInt("bloomBlur", 1);
 
-    Shader averageShader = createShader("pingpong.vert", "pingpong.frag");
-    averageShader.use();
-    averageShader.setInt("image", 0);
-
     Shader blurShader = createShader("blur.vert", "blur.frag");
     blurShader.use();
     blurShader.setInt("image", 0);
@@ -207,11 +204,10 @@ int main(int argc, char *argv[])
         1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
-
-    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(0.5f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f), 
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.2f, 1.2f, 1.2f), glm::vec3(1.2f, 1.2f, 1.2f), 
-        near_plane, far_plane, 
-        1.0f, 0.09f, 0.032f, 
+    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f),
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.2f, 1.2f, 1.2f), glm::vec3(1.2f, 1.2f, 1.2f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight2);
 
@@ -273,8 +269,10 @@ int main(int argc, char *argv[])
 
     // render loop
     // -----------
+    int frameNbr = -1;
     while (!glfwWindowShouldClose(window))
     {
+        frameNbr++;
         // per-frame time logic
         // --------------------
         float currentFrame = glfwGetTime();
@@ -345,6 +343,8 @@ int main(int argc, char *argv[])
             flashLights[i]->addToShader(modelShader);
         }
 
+
+
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -352,7 +352,20 @@ int main(int argc, char *argv[])
         modelShader.setMat4("view", view);
         // render the loaded model
         glm::mat4 model;
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
+        glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
+        glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
+        glm::vec3 modelPos = circuitPos + trajectoryPos;
+        model = glm::translate(model, modelPos); // translate it down so it's at the center of the scene
+        float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
+        float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
+        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
+        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
+        glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
+        //float angle = asin(length(axis));
+
+        model = rotate(model, angle, axis);
+        model = rotate(model, angle2, trajectoryTangent);
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
         modelShader.setMat4("model", model);
 
@@ -448,7 +461,7 @@ int main(int argc, char *argv[])
         // circuit
         // -------
 
-        /*
+
         circuitBTNShader.use();
         circuitBTNShader.setMat4("projection", projection);
         circuitBTNShader.setMat4("view", view);
@@ -459,8 +472,8 @@ int main(int argc, char *argv[])
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitBTNShader.setMat4("model", model);
         circuit.DrawBTN();
-        */
-        //renderCircuit( circuit, circuitShader, projection, view);
+
+        renderCircuit( circuit, circuitShader, projection, view);
 
 
         // also draw the lamp object
@@ -715,7 +728,7 @@ void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::ma
 
   // render the loaded model
   glm::mat4 model = glm::mat4();
-  model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+  model = glm::translate(model, circuitPos);
   //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
   shader.setMat4("model", model);
 
