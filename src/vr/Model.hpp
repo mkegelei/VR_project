@@ -46,10 +46,10 @@ public:
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
-    void DrawWithShadow(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights)
+    void DrawWithShadow(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights, unsigned int skybox)
     {
         for(unsigned int i = 0; i < meshes.size(); i++)
-            meshes[i].DrawWithShadow(shader, dirLight, pointLights, flashLights);
+            meshes[i].DrawWithShadow(shader, dirLight, pointLights, flashLights, skybox);
     }
 
     void DrawForDepth()
@@ -187,7 +187,7 @@ private:
         std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
         textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
         // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_reflection");
         textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
         
         // return a mesh object created from the extracted mesh data

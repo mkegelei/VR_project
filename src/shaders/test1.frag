@@ -7,7 +7,9 @@ struct Material {
     sampler2D texture_specular1;    
     sampler2D texture_normal1;
     sampler2D texture_height1;
+    sampler2D texture_reflection1;
     float shininess;
+    float refraction;
 }; 
 
 struct DirLight {
@@ -59,7 +61,10 @@ in VERT_OUT {
 
 uniform float far_plane;
 uniform float heightScale;
-uniform int parallax;
+uniform bool parallax;
+uniform bool reflection;
+uniform bool refraction;
+uniform float worldRefraction;
 uniform sampler2D dirShadowMap; 
 
 #define NR_POINT_LIGHTS 1
@@ -70,6 +75,7 @@ uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform FlashLight flashLights[NR_FLASH_LIGHTS];
 uniform Material material;
+uniform samplerCube skybox;
 
 // array of offset direction for sampling
 vec3 gridSamplingDisk[20] = vec3[]
@@ -98,7 +104,7 @@ void main()
     vec3 viewDir = normalize(frag_in.TBN * (viewPos - frag_in.FragPos));
 
     vec2 texCoords = frag_in.TexCoords;
-    if(parallax == 1)
+    if(parallax)
     {
         texCoords = ParallaxMapping(frag_in.TexCoords, viewDir);       
         if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
@@ -114,8 +120,8 @@ void main()
     float kEnergyConservation = ( 8.0 + material.shininess ) / ( 8.0 * kPi ); 
     
     // phase 1: directional lighting
-    //vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, frag_in.FragPosLightSpace, texCoords);
-    vec3 result = vec3(0.0f, 0.0f, 0.0f);
+    vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, frag_in.FragPosLightSpace, texCoords);
+    //vec3 result = vec3(0.0f, 0.0f, 0.0f);
     // phase 2: point lights
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, frag_in.FragPos, viewDir, kEnergyConservation, texCoords);    
@@ -123,13 +129,29 @@ void main()
     for(int j = 0; j < NR_FLASH_LIGHTS; j++)
         result += CalcFlashLight(flashLights[j], norm, frag_in.FragPos, viewDir, kEnergyConservation, texCoords);
     
+    if(reflection)
+    {
+        vec3 I = normalize(frag_in.TBN*(frag_in.FragPos - viewPos));
+        vec3 R = reflect(I, norm);
+        result += texture(skybox, R).rgb * vec3(texture(material.texture_reflection1, texCoords));
+    }
+
+    if(refraction)
+    {
+        float ratio = worldRefraction / material.refraction;
+        vec3 I = normalize(frag_in.TBN*(frag_in.FragPos - viewPos));
+        vec3 R = refract(I, norm, ratio);
+        result += texture(skybox, R).rgb;
+    }
+
     FragColor = vec4(result, 1.0);
     float gamma = 1.0;
     FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
+    
     // check whether result is higher than some threshold, if so, output as bloom threshold color
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
     BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
-    if(brightness > 1.5)
+    if(brightness > 2.2)
         BrightColor = vec4(result, 1.0);
     
 }

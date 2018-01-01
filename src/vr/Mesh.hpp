@@ -75,7 +75,7 @@ public:
                 number = std::to_string(specularNr++); // transfer unsigned int to stream
             else if(name == "texture_normal")
                 number = std::to_string(normalNr++); // transfer unsigned int to stream
-             else if(name == "texture_height")
+             else if(name == "texture_reflection")
                 number = std::to_string(heightNr++); // transfer unsigned int to stream
 
                                                      // now set the sampler to the correct texture unit
@@ -93,7 +93,7 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
-    void DrawWithShadow(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights) 
+    void DrawWithShadow(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights, unsigned int skybox) 
     {
         // bind appropriate textures
         unsigned int diffuseNr  = 1;
@@ -112,7 +112,7 @@ public:
                 number = std::to_string(specularNr++); // transfer unsigned int to stream
             else if(name == "texture_normal")
                 number = std::to_string(normalNr++); // transfer unsigned int to stream
-             else if(name == "texture_height")
+             else if(name == "texture_reflection")
                 number = std::to_string(heightNr++); // transfer unsigned int to stream
 
                                                      // now set the sampler to the correct texture unit
@@ -142,6 +142,9 @@ public:
             glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[i]->depthMap.map);
             j++;
         }
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "skybox"), j);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
         
         // draw mesh
         glBindVertexArray(VAO);

@@ -94,8 +94,8 @@ void main()
     float kEnergyConservation = ( 8.0 + material.shininess ) / ( 8.0 * kPi ); 
     
     // phase 1: directional lighting
-    //vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, frag_in.FragPosLightSpace);
-    vec3 result = vec3(0.0f, 0.0f, 0.0f);
+    vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, frag_in.FragPosLightSpace);
+    //vec3 result = vec3(0.0f, 0.0f, 0.0f);
     // phase 2: point lights
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, frag_in.FragPos, viewDir, kEnergyConservation);    
