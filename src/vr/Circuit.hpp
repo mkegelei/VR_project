@@ -120,11 +120,23 @@ public:
   }
 
   glm::vec3 getTrajectoryPos(int index) {
-    return this->trajectory[index*4];
+    int i = index % (this->trajectory.size()/4);
+    return this->trajectory[i*4];
   }
 
   glm::vec3 getTrajectoryNormal(int index) {
-    return this->trajectory[index*4+3];
+    int i = index % (this->trajectory.size()/4);
+    return this->trajectory[i*4+3];
+  }
+
+  glm::vec3 getTrajectoryTangent(int index) {
+    int i = index % (this->trajectory.size()/4);
+    return this->trajectory[i*4+2];
+  }
+
+  glm::vec3 getTrajectoryBinormal(int index) {
+    int i = index % (this->trajectory.size()/4);
+    return this->trajectory[i*4+1];
   }
 
 

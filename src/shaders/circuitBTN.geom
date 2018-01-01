@@ -10,7 +10,7 @@ in VS_OUT {
 
 out vec4 fColor;
 
-const float MAGNITUDE = 0.2;
+const float MAGNITUDE = 0.8;
 
 void GenerateLine(vec3 vector)
 {
