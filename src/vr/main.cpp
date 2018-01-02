@@ -45,7 +45,7 @@ const unsigned int SCR_HEIGHT = 720;
 const unsigned int SHADOW_WIDTH = 1024;
 const unsigned int SHADOW_HEIGHT = 1024;
 const float near_plane = 1.0f;
-const float far_plane = 50.0f;
+const float far_plane = 80.0f;
 const char* dir;
 const char* objName;
 
@@ -79,6 +79,8 @@ std::vector<FlashLight*> flashLights;
 
 //models
 Model ourModel;
+Model asteroid;
+glm::mat4 model2;
 
 int main(int argc, char *argv[])
 {
@@ -134,6 +136,7 @@ int main(int argc, char *argv[])
     // build and compile shaders
     // -------------------------
     Shader modelShader = createShader("test1.vert", "test1.frag");
+    Shader asteroidShader = createShader("asteroid.vert", "asteroid.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
     Shader containerShader = createShader("container.vert", "container.frag");
@@ -147,7 +150,7 @@ int main(int argc, char *argv[])
     debugDepth.use();
     debugDepth.setInt("depthMap", 0);
     debugDepth.setFloat("near_plane", 1.0f);
-    debugDepth.setFloat("far_plane", 25.0f);
+    debugDepth.setFloat("far_plane", 50.0f);
 
     Shader depthShader = createShader("depthShader.vert", "depthShader.frag");
 
@@ -171,6 +174,32 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
+
+    // Load asteroid
+    // -------------
+    ss.str("");
+    ss << dir << "resources/objects/" << "asteroid/asteroid.obj";
+    Model asteroid = *(new Model(ss.str(), false, true));
+    ss.str("");
+    ss << dir << "resources/textures/asteroid/Albedo.jpg";
+    unsigned int asteroidDiff = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/asteroid/Metalness.jpg";
+    unsigned int asteroidSpec = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/asteroid/Normal.jpg";
+    unsigned int asteroidNorm = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/asteroid/Displacement.jpg";
+    unsigned int asteroidDisp = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/asteroid/Emission.jpg";
+    unsigned int asteroidEmis = loadTexture(ss.str().c_str());
+
+    float asteroidDist = 10.0f;
+
+    // Circuit
+    // -------
 
     Circuit circuit = Circuit();
 
@@ -199,7 +228,7 @@ int main(int argc, char *argv[])
 
     // load additionnal textures
     // -------------------------
-    ss.str("");
+    /*ss.str("");
     ss << dir << "resources/textures/wood.png";
     unsigned int woodTexture = loadTexture(ss.str().c_str());
     ss.str("");
@@ -207,7 +236,16 @@ int main(int argc, char *argv[])
     unsigned int brickwallTexture = loadTexture(ss.str().c_str());
     ss.str("");
     ss << dir << "resources/textures/brickwall_normal.jpg";
-    unsigned int brickwallNormalTexture = loadTexture(ss.str().c_str());
+    unsigned int brickwallNormalTexture = loadTexture(ss.str().c_str());*/
+    ss.str("");
+    ss << dir << "resources/textures/Floor/Floor_DIFF.tga";
+    unsigned int floorDiffTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/Floor/Floor_SPEC.tga";
+    unsigned int floorSpecTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/Floor/Floor_NORM.tga";
+    unsigned int floorNormTexture = loadTexture(ss.str().c_str());
     ss.str("");
     ss << dir << "resources/textures/toy_box_diffuse.png";
     unsigned int toyboxTexture = loadTexture(ss.str().c_str());
@@ -229,7 +267,7 @@ int main(int argc, char *argv[])
 
     // Lights
     // ------
-    dirLight = new DirLight(0, depthShader, glm::vec3(-8.0f, 10.0f, 27.0f),
+    dirLight = new DirLight(0, depthShader, glm::vec3(-15.0f, 10.0f, 30.0f),
         glm::vec3(0.15f, 0.05f, 0.05f), glm::vec3(2.4f, 0.8f, 0.8f), glm::vec3(3.0f, 1.0f, 1.0f),
         near_plane, far_plane);
 
@@ -315,37 +353,6 @@ int main(int argc, char *argv[])
     {
         frameNbr++;
 
-        // Calculate model position
-        glm::mat4 model;
-        glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
-        glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
-        glm::vec3 trajectoryBinormal = circuit.getTrajectoryBinormal(frameNbr);
-        glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
-        glm::vec3 modelPos = circuitPos + trajectoryPos;
-        model = glm::translate(model, modelPos); // translate it down so it's at the center of the scene
-        float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
-        float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
-        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
-        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
-        glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
-        //float angle = asin(length(axis));
-        glm::mat4 rot = glm::mat4();
-        rot[0][0] = trajectoryNormal.x;
-        rot[1][0] = trajectoryBinormal.x;
-        rot[2][0] = trajectoryTangent.x;
-
-        rot[0][1] = trajectoryNormal.y;
-        rot[1][1] = trajectoryBinormal.y;
-        rot[2][1] = trajectoryTangent.y;
-
-        rot[0][2] = trajectoryNormal.z;
-        rot[1][2] = trajectoryBinormal.z;
-        rot[2][2] = trajectoryTangent.z;
-        model = model*rot;
-        //model = rotate(model, angle, axis);
-        //model = rotate(model, angle2, trajectoryTangent);
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
-        ourModel.model = model;
         // per-frame time logic
         // --------------------
         float currentFrame = glfwGetTime();
@@ -360,6 +367,47 @@ int main(int argc, char *argv[])
         // ------
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Calculate model position
+        glm::mat4 model1;
+        glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
+        glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
+        glm::vec3 trajectoryBinormal = circuit.getTrajectoryBinormal(frameNbr);
+        glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
+        glm::vec3 modelPos = circuitPos + trajectoryPos;
+        model1 = glm::translate(model1, modelPos); // translate it down so it's at the center of the scene
+        //float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
+        //float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
+        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
+        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
+        //glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
+        //float angle = asin(length(axis));
+        glm::mat4 rot = glm::mat4();
+        rot[0][0] = trajectoryNormal.x;
+        rot[1][0] = trajectoryBinormal.x;
+        rot[2][0] = trajectoryTangent.x;
+
+        rot[0][1] = trajectoryNormal.y;
+        rot[1][1] = trajectoryBinormal.y;
+        rot[2][1] = trajectoryTangent.y;
+
+        rot[0][2] = trajectoryNormal.z;
+        rot[1][2] = trajectoryBinormal.z;
+        rot[2][2] = trajectoryTangent.z;
+        model1 = model1*rot;
+        //model = rotate(model, angle, axis);
+        //model = rotate(model, angle2, trajectoryTangent);
+        model1 = glm::scale(model1, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
+        ourModel.model = model1;
+
+        
+        model2 = glm::mat4();
+        model2 = glm::rotate(model2, float(glfwGetTime())/4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        model2 = glm::translate(model2, glm::vec3(asteroidDist, 2.0f, asteroidDist));
+        model2 = glm::rotate(model2, float(glfwGetTime())/2.0f, glm::vec3(0.5f, 0.0f, 1.0f));
+        
+        asteroid.model = model2;
+        
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
@@ -402,6 +450,12 @@ int main(int argc, char *argv[])
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
         glDisable(GL_CULL_FACE);
 
+        glm::mat4 model;
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(6.0f, 0.5f, -2.0f));
+        setShaderUniforms(asteroidShader, projection, view, asteroid.model, camera.Position, far_plane, 2.0f);
+        asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
+
         // Draw brickwall
         // --------------
 
@@ -436,8 +490,8 @@ int main(int argc, char *argv[])
         // ----------
 
         model = glm::mat4();
-        setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 2.0f);
-        setTextures(floorShader, skybox, woodTexture, woodTexture);
+        setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
+        setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
         renderFloor();
 
         // circuit
@@ -519,10 +573,10 @@ int main(int argc, char *argv[])
         //std::cout << "heightScale: " << heightScale << std::endl;
         // Debug depth map
         // ---------------------------------------------
-        /*debugDepth.use();
+        debugDepth.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
-        renderTestQuad();*/
+        //renderTestQuad();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -538,6 +592,7 @@ int main(int argc, char *argv[])
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -1019,8 +1074,6 @@ void renderDepthMap(FlashLight* light)
 void renderSceneForDepth(Shader shader)
 {
     glm::mat4 model;
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-    model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
     //shader.use();
     shader.setMat4("model", ourModel.model);
     glEnable(GL_CULL_FACE);
@@ -1028,6 +1081,9 @@ void renderSceneForDepth(Shader shader)
     ourModel.DrawForDepth();
     glCullFace(GL_BACK);
     glDisable(GL_CULL_FACE);
+    shader.setMat4("model", model2);
+    renderCube();
+    //asteroid.DrawForDepth();
     model = glm::mat4();
     shader.setMat4("model", model);
     renderFloor();
@@ -1125,29 +1181,88 @@ void renderFloor()
 {
     if (planeVAO == 0)
     {
-        float planeVertices[] = {
-            // positions            // normals         // texcoords
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+        // positions
+        glm::vec3 pos1(10.0f, -0.5f, 10.0f);
+        glm::vec3 pos2(-10.0f, -0.5f, 10.0f);
+        glm::vec3 pos3(-10.0f, -0.5f, -10.0f);
+        glm::vec3 pos4(10.0f, -0.5f, -10.0f);
+        // texture coordinates
+        glm::vec2 uv1(10.0f, 0.0f);
+        glm::vec2 uv2(0.0f, 0.0f);
+        glm::vec2 uv3(0.0f, 10.0f);
+        glm::vec2 uv4(10.0f, 10.0f);
+        // normal vector
+        glm::vec3 nm(0.0f, 0.0f, 1.0f);
 
-             25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-            -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-             25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
+        // calculate tangent/bitangent vectors of both triangles
+        glm::vec3 tangent1, bitangent1;
+        glm::vec3 tangent2, bitangent2;
+        // triangle 1
+        // ----------
+        glm::vec3 edge1 = pos2 - pos1;
+        glm::vec3 edge2 = pos3 - pos1;
+        glm::vec2 deltaUV1 = uv2 - uv1;
+        glm::vec2 deltaUV2 = uv3 - uv1;
+
+        GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent1 = glm::normalize(tangent1);
+
+        bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent1 = glm::normalize(bitangent1);
+
+        // triangle 2
+        // ----------
+        edge1 = pos3 - pos1;
+        edge2 = pos4 - pos1;
+        deltaUV1 = uv3 - uv1;
+        deltaUV2 = uv4 - uv1;
+
+        f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent2 = glm::normalize(tangent2);
+
+
+        bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent2 = glm::normalize(bitangent2);
+
+
+        float planeVertices[] = {
+            // positions            // normal         // texcoords  // tangent                          // bitangent
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
         };
-        // plane VAO
+        // configure plane VAO
         glGenVertexArrays(1, &planeVAO);
         glGenBuffers(1, &planeVBO);
         glBindVertexArray(planeVAO);
         glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        glBindVertexArray(0);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
     }
     glBindVertexArray(planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);

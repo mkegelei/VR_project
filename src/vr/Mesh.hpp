@@ -155,6 +155,65 @@ public:
         glActiveTexture(GL_TEXTURE0);
     }
 
+    void DrawAsteroid(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights, unsigned int diffuse, unsigned int specular, unsigned int normal, unsigned int disparity, unsigned int emission, unsigned int skybox) 
+    {
+        unsigned int j = 0;
+
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "material.texture_diffuse1"), j);
+        glBindTexture(GL_TEXTURE_2D, diffuse);
+        j++;
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "material.texture_specular1"), j);
+        glBindTexture(GL_TEXTURE_2D, specular);
+        j++;
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "material.texture_normal1"), j);
+        glBindTexture(GL_TEXTURE_2D, normal);
+        j++;
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "material.texture_height1"), j);
+        glBindTexture(GL_TEXTURE_2D, disparity);
+        j++;
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "material.texture_emission1"), j);
+        glBindTexture(GL_TEXTURE_2D, emission);
+        j++;
+
+        //add shadow maps
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "dirShadowMap"), j);
+        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
+        j++;
+
+        for (unsigned int i = 0; i < pointLights.size(); ++i)
+        {
+            glActiveTexture(GL_TEXTURE0 + j);
+            glUniform1i(glGetUniformLocation(shader.ID, ("pointLights["+std::to_string(i)+"].pointShadowMap").c_str()), j);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[i]->depthMap.map);
+            j++;
+        }
+        
+        for (unsigned int i = 0; i < flashLights.size(); ++i)
+        {
+            glActiveTexture(GL_TEXTURE0 + j);
+            glUniform1i(glGetUniformLocation(shader.ID, ("flashLights["+std::to_string(i)+"].flashShadowMap").c_str()), j);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[i]->depthMap.map);
+            j++;
+        }
+        glActiveTexture(GL_TEXTURE0 + j);
+        glUniform1i(glGetUniformLocation(shader.ID, "skybox"), j);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+        
+        // draw mesh
+        glBindVertexArray(VAO);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+
+        // always good practice to set everything back to defaults once configured.
+        glActiveTexture(GL_TEXTURE0);
+    }
+
     void DrawForDepth() 
     {   
         // draw mesh

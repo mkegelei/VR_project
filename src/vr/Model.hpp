@@ -36,9 +36,9 @@ public:
     /*  Functions   */
     Model(){}
     // constructor, expects a filepath to a 3D model.
-    Model(string const &path, bool gamma = false) : gammaCorrection(gamma)
+    Model(string const &path, bool gamma = false, bool asteroid = false) : gammaCorrection(gamma)
     {
-        loadModel(path);
+        loadModel(path, asteroid);
     }
 
     // draws the model, and thus all its meshes
@@ -53,6 +53,12 @@ public:
             meshes[i].DrawWithShadow(shader, dirLight, pointLights, flashLights, skybox);
     }
 
+    void DrawAsteroid(Shader shader, DirLight* dirLight, vector<PointLight*> pointLights, vector<FlashLight*> flashLights, unsigned int diffuse, unsigned int specular, unsigned int normal, unsigned int disparity, unsigned int emission, unsigned int skybox) 
+    {
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].DrawAsteroid(shader, dirLight, pointLights, flashLights, diffuse, specular, normal, disparity, emission,skybox);
+    }
+
     void DrawForDepth()
     {
         for(unsigned int i = 0; i < meshes.size(); i++)
@@ -62,7 +68,7 @@ public:
 private:
     /*  Functions   */
     // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-    void loadModel(string const &path)
+    void loadModel(string const &path, bool asteroid)
     {
         // read file via ASSIMP
         Assimp::Importer importer;
@@ -77,11 +83,11 @@ private:
         directory = path.substr(0, path.find_last_of('/'));
 
         // process ASSIMP's root node recursively
-        processNode(scene->mRootNode, scene);
+        processNode(scene->mRootNode, scene, asteroid);
     }
 
     // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-    void processNode(aiNode *node, const aiScene *scene)
+    void processNode(aiNode *node, const aiScene *scene, bool asteroid)
     {
         // process each mesh located at the current node
         for(unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -89,17 +95,17 @@ private:
             // the node object only contains indices to index the actual objects in the scene. 
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            meshes.push_back(processMesh(mesh, scene));
+            meshes.push_back(processMesh(mesh, scene, asteroid));
         }
         // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
         for(unsigned int i = 0; i < node->mNumChildren; i++)
         {
-            processNode(node->mChildren[i], scene);
+            processNode(node->mChildren[i], scene, asteroid);
         }
 
     }
 
-    Mesh processMesh(aiMesh *mesh, const aiScene *scene)
+    Mesh processMesh(aiMesh *mesh, const aiScene *scene, bool asteroid)
     {
         // data to fill
         vector<Vertex> vertices;
@@ -177,20 +183,21 @@ private:
         // diffuse: texture_diffuseN
         // specular: texture_specularN
         // normal: texture_normalN
-
-        // 1. diffuse maps
-        vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
-        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-        // 2. specular maps
-        vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
-        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-        // 3. normal maps
-        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
-        textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-        // 4. height maps
-        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_reflection");
-        textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
-        
+        if(!asteroid)
+        {
+            // 1. diffuse maps
+            vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+            textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+            // 2. specular maps
+            vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+            textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+            // 3. normal maps
+            std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+            textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+            // 4. height maps
+            std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_reflection");
+            textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+        }
         // return a mesh object created from the extracted mesh data
         return Mesh(vertices, indices, textures);
     }
