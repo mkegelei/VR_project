@@ -45,7 +45,7 @@ const unsigned int SCR_HEIGHT = 720;
 const unsigned int SHADOW_WIDTH = 1024;
 const unsigned int SHADOW_HEIGHT = 1024;
 const float near_plane = 1.0f;
-const float far_plane = 25.0f;
+const float far_plane = 50.0f;
 const char* dir;
 const char* objName;
 
@@ -225,8 +225,8 @@ int main(int argc, char *argv[])
 
     // Lights
     // ------
-    dirLight = new DirLight(0, depthShader, glm::vec3(-2.0f, 4.0f, -1.0f),
-        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.8f, 0.8f, 0.8f), glm::vec3(1.0f, 1.0f, 1.0f),
+    dirLight = new DirLight(0, depthShader, glm::vec3(-8.0f, 10.0f, 27.0f),
+        glm::vec3(0.15f, 0.05f, 0.05f), glm::vec3(2.4f, 0.8f, 0.8f), glm::vec3(3.0f, 1.0f, 1.0f),
         near_plane, far_plane);
 
     PointLight* pointLight = new PointLight(0, depthCubeShader, &lightPos,
@@ -310,6 +310,25 @@ int main(int argc, char *argv[])
     while (!glfwWindowShouldClose(window))
     {
         frameNbr++;
+        
+        // Calculate model position
+        glm::mat4 model;
+        glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
+        glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
+        glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
+        glm::vec3 modelPos = circuitPos + trajectoryPos;
+        model = glm::translate(model, modelPos); // translate it down so it's at the center of the scene
+        float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
+        float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
+        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
+        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
+        glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
+        //float angle = asin(length(axis));
+
+        model = rotate(model, angle, axis);
+        model = rotate(model, angle2, trajectoryTangent);
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
+        ourModel.model = model;
         // per-frame time logic
         // --------------------
         float currentFrame = glfwGetTime();
@@ -359,23 +378,8 @@ int main(int argc, char *argv[])
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         // render the loaded model
-        glm::mat4 model;
-        glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
-        glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
-        glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
-        glm::vec3 modelPos = circuitPos + trajectoryPos;
-        model = glm::translate(model, modelPos); // translate it down so it's at the center of the scene
-        float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
-        float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
-        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
-        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
-        glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
-        //float angle = asin(length(axis));
-
-        model = rotate(model, angle, axis);
-        model = rotate(model, angle2, trajectoryTangent);
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
-        setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 16.0f);
+        
+        setShaderUniforms(modelShader, projection, view, ourModel.model, camera.Position, far_plane, 16.0f);
 
         glEnable(GL_CULL_FACE);
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
@@ -436,7 +440,7 @@ int main(int argc, char *argv[])
         lampShader.setMat4("model", model);
         lampShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
         renderCube();
-
+        
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyboxShader.use();
@@ -991,7 +995,7 @@ void renderSceneForDepth(Shader shader)
     model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
     model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
     //shader.use();
-    shader.setMat4("model", model);
+    shader.setMat4("model", ourModel.model);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     ourModel.DrawForDepth();
@@ -1006,6 +1010,7 @@ void renderSceneForDepth(Shader shader)
     renderQuad();
     model = glm::mat4();
     model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+    shader.setMat4("model", model);
     renderCube();
 
 }

@@ -31,6 +31,7 @@ public:
     vector<Mesh> meshes;
     string directory;
     bool gammaCorrection;
+    glm::mat4 model;
 
     /*  Functions   */
     Model(){}

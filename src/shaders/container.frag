@@ -110,10 +110,6 @@ void main()
     bool isBlack = texture(material.texture_specular1, frag_in.TexCoords).r == 0.0;
     if (isBlack)   /*rough check for blackbox inside spec texture */
     {
-        /*apply emission texture */
-        //emission = texture(material.texture_emission1, frag_in.TexCoords).rgb;
-        
-        /*some extra fun stuff with "time uniform" */
         mat3 toRed = mat3(0.0);
         toRed[2] = vec3(10.0, 0.0, 0.0);
         emission = texture(material.texture_emission1, frag_in.TexCoords + vec2(0.0,time)).rgb;   /*moving */
