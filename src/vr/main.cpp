@@ -25,6 +25,8 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 unsigned int loadCubemap(vector<std::string> faces);
 Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex = 0, unsigned int specularTex = 0, unsigned int normalTex = 0, unsigned int heightTex = 0, unsigned int reflectionTex = 0, unsigned int emissionTex = 0);
+void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view, glm::mat4 model, glm::vec3 viewPos, float far_plane, float shininess, float heightScale = 0.1, bool parallax = false, bool reflection = false, bool refraction = false, float materialRefraction = 1.00f, float worldRefraction = 1.00f);
 float lerp(float a, float b, float f);
 void renderSkybox(unsigned int texture);
 void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::mat4 view);
@@ -134,6 +136,7 @@ int main(int argc, char *argv[])
     Shader modelShader = createShader("test1.vert", "test1.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
+    Shader containerShader = createShader("container.vert", "container.frag");
 
     Shader skyboxShader = createShader("skybox.vert", "skybox.frag");
     skyboxShader.use();
@@ -168,30 +171,30 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
 
-    //Circuit circuit = Circuit();
+    Circuit circuit = Circuit();
 
     // load skybox textures
     // --------------------
     vector<std::string> faces;
     ss.str("");
-    ss << dir << "resources/textures/skybox/right.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/right.tga";
     faces.push_back(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/skybox/left.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/left.tga";
     faces.push_back(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/skybox/top.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/top.tga";
     faces.push_back(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/skybox/bottom.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/bottom.tga";
     faces.push_back(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/skybox/back.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/back.tga";
     faces.push_back(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/skybox/front.jpg";
+    ss << dir << "resources/textures/skybox/mp_blood/front.tga";
     faces.push_back(ss.str().c_str());
-    unsigned int cubemapTexture = loadCubemap(faces);
+    unsigned int skybox = loadCubemap(faces);
 
     // load additionnal textures
     // -------------------------
@@ -213,7 +216,12 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/textures/toy_box_disp.png";
     unsigned int toyboxDispTexture = loadTexture(ss.str().c_str());
-    //unsigned int emissionMap = loadTexture(ss4.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/matrix.jpg";  
+    unsigned int matrixEmissionTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/container2_specular.png";  
+    unsigned int containerSpecTexture = loadTexture(ss.str().c_str());
 
     // Lights
     // ------
@@ -344,44 +352,12 @@ int main(int argc, char *argv[])
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
-        modelShader.use();
-
-        modelShader.setVec3("viewPos", camera.Position);
-        modelShader.setFloat("material.shininess", 16.0f);
-        modelShader.setFloat("far_plane", far_plane);
-        modelShader.setFloat("heightScale", heightScale);
-        modelShader.setFloat("worldRefraction", 1.00f);
-
-        modelShader.setBool("parallax", false);
-        modelShader.setBool("reflection", false);
-        modelShader.setBool("refraction", false);
-        //modelShader.setFloat("material.refraction", 1.52f);
-        modelShader.setInt("material.texture_reflection1", 0);
-        modelShader.setInt("material.texture_height1", 0);
-
-        // directional light
-        dirLight->addToShader(modelShader);
-
-        // point light 1
-        for (unsigned int i = 0; i < pointLights.size(); ++i)
-        {
-            pointLights[i]->addToShader(modelShader);
-        }
-
-        // flashLight
-        for (unsigned int i = 0; i < flashLights.size(); ++i)
-        {
-            flashLights[i]->addToShader(modelShader);
-        }
-
-
+        // Draw main model
+        // ---------------
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        modelShader.setMat4("projection", projection);
-        modelShader.setMat4("view", view);
         // render the loaded model
         glm::mat4 model;
         glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
@@ -399,103 +375,42 @@ int main(int argc, char *argv[])
         model = rotate(model, angle, axis);
         model = rotate(model, angle2, trajectoryTangent);
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
-        modelShader.setMat4("model", model);
-
-        glm::mat3 normalMatrix = glm::mat3(transpose(inverse(model)));
-        modelShader.setMat3("normalMatrix", normalMatrix);
+        setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 16.0f);
 
         glEnable(GL_CULL_FACE);
-        ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, cubemapTexture);
+        ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
         glDisable(GL_CULL_FACE);
+        
         // Draw brickwall
-        modelShader.setBool("parallax", true);
-        modelShader.setBool("reflection", false);
-        modelShader.setBool("refraction", false);
-        modelShader.setFloat("material.shininess", 2.0f);
+        // --------------
 
-        modelShader.setInt("material.texture_diffuse1", 0);
-        modelShader.setInt("material.texture_specular1", 0);
-        modelShader.setInt("material.texture_reflection1", 0);
-        modelShader.setInt("material.texture_normal1", 4);
-        modelShader.setInt("material.texture_height1", 5);
-        modelShader.setInt("dirShadowMap", 1);
-        modelShader.setInt("pointLights[0].pointShadowMap", 2);
-        modelShader.setInt("flashLights[0].flashShadowMap", 3);
-        modelShader.setInt("flashLights[1].flashShadowMap", 6);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, toyboxTexture);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[0]->depthMap.map);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, toyboxNormalTexture);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, toyboxDispTexture);
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[1]->depthMap.map);
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
-        modelShader.setMat4("model", model);
-
-        normalMatrix = glm::mat3(transpose(inverse(model)));
-        modelShader.setMat3("normalMatrix", normalMatrix);
+        setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 2.0f, heightScale, true);
+        setTextures(modelShader, skybox, toyboxTexture, toyboxTexture, toyboxNormalTexture, toyboxDispTexture);
         renderQuad();
 
-        // Draw floor
-        floorShader.use();
+        // Draw matrix cube
+        // ----------------
 
-        floorShader.setVec3("viewPos", camera.Position);
-        floorShader.setFloat("material.shininess", 2.0f);
-        floorShader.setFloat("far_plane", far_plane);
-
-        // directional light
-        dirLight->addToShader(floorShader);
-
-        // point light 1
-        for (unsigned int i = 0; i < pointLights.size(); ++i)
-        {
-            pointLights[i]->addToShader(floorShader);
-        }
-
-        // flashLight
-        for (unsigned int i = 0; i < flashLights.size(); ++i)
-        {
-            flashLights[i]->addToShader(floorShader);
-        }
-
-        // view/projection transformations
-        floorShader.setMat4("projection", projection);
-        floorShader.setMat4("view", view);
-
-
-        floorShader.setInt("material.texture_diffuse1", 0);
-        floorShader.setInt("material.texture_specular1", 0);
-        floorShader.setInt("dirShadowMap", 1);
-        floorShader.setInt("pointLights[0].pointShadowMap", 2);
-        floorShader.setInt("flashLights[0].flashShadowMap", 3);
-        floorShader.setInt("flashLights[1].flashShadowMap", 4);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, woodTexture);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[0]->depthMap.map);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[0]->depthMap.map);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[1]->depthMap.map);
         model = glm::mat4();
-        floorShader.setMat4("model", model);
-        normalMatrix = glm::mat3(transpose(inverse(model)));
-        floorShader.setMat3("normalMatrix", normalMatrix);
+        model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+        setShaderUniforms(containerShader, projection, view, model, camera.Position, far_plane, 5.0f);
+        setTextures(containerShader, skybox, containerSpecTexture, containerSpecTexture, 0, 0, 0, matrixEmissionTexture);
+        containerShader.use();
+        containerShader.setFloat("time", glfwGetTime());
+        renderCube();
+
+        // Draw floor
+        // ----------
+
+        model = glm::mat4();
+        setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 2.0f);
+        setTextures(floorShader, skybox, woodTexture, woodTexture);
         renderFloor();
 
         // circuit
         // -------
-
 
         circuitBTNShader.use();
         circuitBTNShader.setMat4("projection", projection);
@@ -508,7 +423,7 @@ int main(int argc, char *argv[])
         circuitBTNShader.setMat4("model", model);
         circuit.DrawBTN();
 
-        renderCircuit( circuit, circuitShader, projection, view);
+        renderCircuit(circuit, circuitShader, projection, view);
 
 
         // also draw the lamp object
@@ -528,8 +443,7 @@ int main(int argc, char *argv[])
         view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
         skyboxShader.setMat4("view", view);
         skyboxShader.setMat4("projection", projection);
-        // skybox cube
-        renderSkybox(cubemapTexture);
+        renderSkybox(skybox);
         glDepthFunc(GL_LESS); // set depth function back to default
 
         // unbind HDR buffer
@@ -804,6 +718,139 @@ Shader createShader(const char* vert, const char* frag, const char* geom)
     return *shader;
 }
 
+void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex, 
+    unsigned int specularTex, unsigned int normalTex, 
+    unsigned int heightTex, unsigned int reflectionTex, unsigned int emissionTex)
+{
+    shader.use();
+    unsigned int j = 0;
+    if(diffuseTex != 0)
+    {
+        shader.setInt("material.texture_diffuse1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, diffuseTex);
+        if(diffuseTex != specularTex)
+            j++;
+    }
+    if(specularTex != 0)
+    {
+        shader.setInt("material.texture_specular1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, specularTex);
+        j++;
+    }
+    if(emissionTex != 0)
+    {
+        shader.setInt("material.texture_emission1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, emissionTex);
+        j++;
+    }
+    if(normalTex != 0)
+    {
+        shader.setInt("material.texture_normal1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, normalTex);
+        j++;
+    }
+    if(heightTex != 0)
+    {
+        shader.setInt("material.texture_height1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, heightTex);
+        j++;
+    }
+    if(reflectionTex != 0)
+    {
+        shader.setInt("material.texture_reflection1", j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_2D, reflectionTex);
+        j++;
+    }   
+
+    shader.setInt("dirShadowMap", j);
+    glActiveTexture(GL_TEXTURE0+j);
+    glBindTexture(GL_TEXTURE_2D, dirLight->depthMap.map);
+    j++;
+
+    stringstream ss;
+    for (unsigned int i = 0; i < pointLights.size(); ++i)
+    {
+        ss.str("");
+        ss << "pointLights[" << i << "].pointShadowMap";
+        shader.setInt(ss.str(), j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, pointLights[i]->depthMap.map);
+        j++;
+    }
+
+    // flashLight
+    for (unsigned int i = 0; i < flashLights.size(); ++i)
+    {
+        ss.str("");
+        ss << "flashLights[" << i << "].flashShadowMap";
+        shader.setInt(ss.str(), j);
+        glActiveTexture(GL_TEXTURE0+j);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, flashLights[i]->depthMap.map);
+        j++;
+    }
+
+    shader.setInt("skybox", j);
+    glActiveTexture(GL_TEXTURE0+j);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, skybox);
+
+}
+
+void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view, 
+    glm::mat4 model, glm::vec3 viewPos, float far_plane, float shininess,
+    float heightScale, bool parallax, bool reflection, bool refraction,
+    float materialRefraction, float worldRefraction)
+{
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    shader.setMat4("model", model);
+    glm::mat3 normalMatrix = glm::mat3(transpose(inverse(model)));
+    shader.setMat3("normalMatrix", normalMatrix);
+
+    shader.setVec3("viewPos", viewPos);
+    shader.setFloat("far_plane", far_plane);
+    shader.setFloat("material.shininess", shininess); 
+
+    // directional light
+    dirLight->addToShader(shader);
+
+    // point light 1
+    for (unsigned int i = 0; i < pointLights.size(); ++i)
+    {
+        pointLights[i]->addToShader(shader);
+    }
+
+    // flashLight
+    for (unsigned int i = 0; i < flashLights.size(); ++i)
+    {
+        flashLights[i]->addToShader(shader);
+    }
+
+    shader.setBool("parallax", parallax);
+    if(!parallax)
+        shader.setInt("material.texture_height1", 0);
+    else
+        shader.setFloat("heightScale", heightScale);
+
+    shader.setBool("reflection", reflection);
+    if(!reflection)
+        shader.setInt("material.texture_reflection1", 0);
+
+    shader.setBool("refraction", refraction);
+    if(refraction)
+    {
+        shader.setInt("material.refraction", materialRefraction);
+        shader.setInt("worldRefraction", worldRefraction);
+    }
+
+}
+
 unsigned int skyboxVAO = 0;
 unsigned int skyboxVBO;
 void renderSkybox(unsigned int texture)
@@ -957,6 +1004,10 @@ void renderSceneForDepth(Shader shader)
     model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
     shader.setMat4("model", model);
     renderQuad();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+    renderCube();
+
 }
 
 // renderCube() renders a 1x1 3D cube in NDC.
