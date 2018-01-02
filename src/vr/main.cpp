@@ -137,6 +137,7 @@ int main(int argc, char *argv[])
     Shader floorShader = createShader("floor.vert", "floor.frag");
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
     Shader containerShader = createShader("container.vert", "container.frag");
+    Shader explodeShader = createShader("explode.vert", "explode.frag", "explode.geom");
 
     Shader skyboxShader = createShader("skybox.vert", "skybox.frag");
     skyboxShader.use();
@@ -222,6 +223,9 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/textures/container2_specular.png";  
     unsigned int containerSpecTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/bricks2.jpg";  
+    unsigned int blockTexture = loadTexture(ss.str().c_str());
 
     // Lights
     // ------
@@ -310,7 +314,7 @@ int main(int argc, char *argv[])
     while (!glfwWindowShouldClose(window))
     {
         frameNbr++;
-        
+
         // Calculate model position
         glm::mat4 model;
         glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
@@ -403,6 +407,16 @@ int main(int argc, char *argv[])
         setTextures(containerShader, skybox, containerSpecTexture, containerSpecTexture, 0, 0, 0, matrixEmissionTexture);
         containerShader.use();
         containerShader.setFloat("time", glfwGetTime());
+        renderCube();
+
+        // Draw exploding container
+        // ------------------------
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(-0.5f, 2.0f, -8.0f));
+        setShaderUniforms(explodeShader, projection, view, model, camera.Position, far_plane, 2.0f);
+        setTextures(explodeShader, skybox, blockTexture, blockTexture);
+        explodeShader.use();
+        explodeShader.setFloat("time", glfwGetTime());
         renderCube();
 
         // Draw floor
