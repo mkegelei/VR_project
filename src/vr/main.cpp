@@ -217,10 +217,10 @@ int main(int argc, char *argv[])
     ss << dir << "resources/textures/toy_box_disp.png";
     unsigned int toyboxDispTexture = loadTexture(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/matrix.jpg";  
+    ss << dir << "resources/textures/matrix.jpg";
     unsigned int matrixEmissionTexture = loadTexture(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/container2_specular.png";  
+    ss << dir << "resources/textures/container2_specular.png";
     unsigned int containerSpecTexture = loadTexture(ss.str().c_str());
 
     // Lights
@@ -310,11 +310,12 @@ int main(int argc, char *argv[])
     while (!glfwWindowShouldClose(window))
     {
         frameNbr++;
-        
+
         // Calculate model position
         glm::mat4 model;
         glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
         glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
+        glm::vec3 trajectoryBinormal = circuit.getTrajectoryBinormal(frameNbr);
         glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
         glm::vec3 modelPos = circuitPos + trajectoryPos;
         model = glm::translate(model, modelPos); // translate it down so it's at the center of the scene
@@ -324,9 +325,21 @@ int main(int argc, char *argv[])
         //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
         glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
         //float angle = asin(length(axis));
+        glm::mat4 rot = glm::mat4();
+        rot[0][0] = trajectoryNormal.x;
+        rot[1][0] = trajectoryBinormal.x;
+        rot[2][0] = trajectoryTangent.x;
 
-        model = rotate(model, angle, axis);
-        model = rotate(model, angle2, trajectoryTangent);
+        rot[0][1] = trajectoryNormal.y;
+        rot[1][1] = trajectoryBinormal.y;
+        rot[2][1] = trajectoryTangent.y;
+
+        rot[0][2] = trajectoryNormal.z;
+        rot[1][2] = trajectoryBinormal.z;
+        rot[2][2] = trajectoryTangent.z;
+        model = model*rot;
+        //model = rotate(model, angle, axis);
+        //model = rotate(model, angle2, trajectoryTangent);
         model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
         ourModel.model = model;
         // per-frame time logic
@@ -378,13 +391,13 @@ int main(int argc, char *argv[])
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         // render the loaded model
-        
+
         setShaderUniforms(modelShader, projection, view, ourModel.model, camera.Position, far_plane, 16.0f);
 
         glEnable(GL_CULL_FACE);
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
         glDisable(GL_CULL_FACE);
-        
+
         // Draw brickwall
         // --------------
 
@@ -440,7 +453,7 @@ int main(int argc, char *argv[])
         lampShader.setMat4("model", model);
         lampShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
         renderCube();
-        
+
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyboxShader.use();
@@ -667,7 +680,7 @@ unsigned int loadTexture(char const * path, bool gamma)
 // -X (left)
 // +Y (top)
 // -Y (bottom)
-// +Z (front) 
+// +Z (front)
 // -Z (back)
 // -------------------------------------------------------
 unsigned int loadCubemap(vector<std::string> faces)
@@ -722,8 +735,8 @@ Shader createShader(const char* vert, const char* frag, const char* geom)
     return *shader;
 }
 
-void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex, 
-    unsigned int specularTex, unsigned int normalTex, 
+void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex,
+    unsigned int specularTex, unsigned int normalTex,
     unsigned int heightTex, unsigned int reflectionTex, unsigned int emissionTex)
 {
     shader.use();
@@ -770,7 +783,7 @@ void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex,
         glActiveTexture(GL_TEXTURE0+j);
         glBindTexture(GL_TEXTURE_2D, reflectionTex);
         j++;
-    }   
+    }
 
     shader.setInt("dirShadowMap", j);
     glActiveTexture(GL_TEXTURE0+j);
@@ -805,7 +818,7 @@ void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex,
 
 }
 
-void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view, 
+void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view,
     glm::mat4 model, glm::vec3 viewPos, float far_plane, float shininess,
     float heightScale, bool parallax, bool reflection, bool refraction,
     float materialRefraction, float worldRefraction)
@@ -819,7 +832,7 @@ void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view,
 
     shader.setVec3("viewPos", viewPos);
     shader.setFloat("far_plane", far_plane);
-    shader.setFloat("material.shininess", shininess); 
+    shader.setFloat("material.shininess", shininess);
 
     // directional light
     dirLight->addToShader(shader);
@@ -862,7 +875,7 @@ void renderSkybox(unsigned int texture)
     if(skyboxVAO == 0)
     {
         float skyboxVertices[] = {
-        // positions          
+        // positions
         -1.0f,  1.0f, -1.0f,
         -1.0f, -1.0f, -1.0f,
          1.0f, -1.0f, -1.0f,
