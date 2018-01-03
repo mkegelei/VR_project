@@ -1,6 +1,6 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
-#define MAX_PARTICLES 10000
+#define MAX_PARTICLES 30000
 // Inspired by http://www.opengl-tutorial.org/fr/intermediate-tutorials/billboards-particles/particles-instancing/
 #include <map>
 #include <vector>
@@ -77,10 +77,10 @@ public:
 
 		for(int i=0; i<newparticles; i++){
 			int particleIndex = FindUnusedParticle();
-			ParticlesContainer[particleIndex].life = (rand()%100)/100.0f; // This particle will live 5 seconds.
+			ParticlesContainer[particleIndex].life = (rand()%200)/100.0f; // This particle will live 5 seconds.
 			ParticlesContainer[particleIndex].pos = emitterPos;
 
-			float spread = 1.5f;
+			float spread = 0.6f;
 			// Very bad way to generate a random direction;
 			// See for instance http://stackoverflow.com/questions/5408276/python-uniform-spherical-distribution instead,
 			// combined with some user-controlled parameters (main direction, spread, etc)
@@ -100,7 +100,7 @@ public:
       //cout << (rand()%1000)/1000.0f << typeid((rand()%1000)/1000.0f).name();
       //cout << ParticlesContainer[particleIndex].r << ", " << ParticlesContainer[particleIndex].g << ", " << ParticlesContainer[particleIndex].b << ", " << ParticlesContainer[particleIndex].a << endl;
 
-			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.05;
+			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.1;
 		}
   }
 

@@ -56,6 +56,8 @@ bool hdr = true;
 bool hdrKeyPressed = false;
 bool bloom = true;
 bool bloomKeyPressed = false;
+bool btn = false;
+bool btnKeyPressed = false;
 float exposure = 1.0f;
 
 // camera
@@ -451,13 +453,13 @@ int main(int argc, char *argv[])
 
         // Calculate model position
         glm::mat4 model1;
-        
+
         glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
         glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
         glm::vec3 trajectoryBinormal = circuit.getTrajectoryBinormal(frameNbr);
         glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
         glm::vec3 modelPos = circuitPos + trajectoryPos;
-        model1 = glm::translate(model1, modelPos); 
+        model1 = glm::translate(model1, modelPos);
         model1 = glm::translate(model1, 0.7f*trajectoryBinormal);
         model1 = glm::rotate(model1, glm::radians(180.0f), trajectoryBinormal);
         //float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
@@ -483,7 +485,7 @@ int main(int argc, char *argv[])
         //model = rotate(model, angle2, trajectoryTangent);
 
         model1 = glm::scale(model1, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down
-        
+
         ourModel.model = model1;
 
 
@@ -601,24 +603,29 @@ int main(int argc, char *argv[])
         particlesShader.setMat4("view", view);
         model = glm::mat4();
         particlesShader.setMat4("model", model);
-        particlesShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
-        particles.generateParticles(deltaTime, modelPos, -trajectoryTangent);
+        particlesShader.setVec3("lightColor", glm::vec3(0.0f, 10.0f, 0.0f));
+        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.7f, -trajectoryTangent);
+        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f + trajectoryNormal*1.6f, -trajectoryTangent);
+        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f - trajectoryNormal*1.5f, -trajectoryTangent);
         particles.simulatePhysics(deltaTime, camera.Position);
         particles.Draw();
 
         // circuit
         // -------
 
-        circuitBTNShader.use();
-        circuitBTNShader.setMat4("projection", projection);
-        circuitBTNShader.setMat4("view", view);
+        if (btn) {
+          circuitBTNShader.use();
+          circuitBTNShader.setMat4("projection", projection);
+          circuitBTNShader.setMat4("view", view);
 
-        // render the loaded model
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//1.8
-        //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-        circuitBTNShader.setMat4("model", model);
-        circuit.DrawBTN();
+          // render the loaded model
+          model = glm::mat4();
+          model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//1.8
+          //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+          circuitBTNShader.setMat4("model", model);
+          circuit.DrawBTN();
+        }
+
 
         renderCircuit(circuit, circuitShader, projection, view);
 
@@ -754,6 +761,16 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
     {
         hdrKeyPressed = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !btnKeyPressed)
+    {
+        btn = !btn;
+        btnKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+    {
+        btnKeyPressed = false;
     }
 
     if (glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS && !bloomKeyPressed)
