@@ -61,7 +61,7 @@ bool btnKeyPressed = false;
 float exposure = 1.0f;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 2.0f, 6.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -71,8 +71,8 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-Camera lightPos(glm::vec3(0.0f,0.0f,0.0f));//1.2f, 1.0f, 2.0f));
-glm::vec3 circuitPos = glm::vec3(0.0f, 0.0f, 0.0f);//0 1.8 0
+Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
+glm::vec3 circuitPos = glm::vec3(0.0f, 0.0f, 0.0f);
 //std::vector<DirLight> dirLights;
 DirLight* dirLight;
 unsigned int plId = 0;
@@ -84,7 +84,7 @@ std::vector<FlashLight*> flashLights;
 Model spaceship;
 Model asteroid;
 Model rock;
-glm::mat4 model2;
+glm::mat4 model2; //can't be stored in asteroid.model for some obscure reason
 
 int main(int argc, char *argv[])
 {
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "VR project", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
     // -----
     ss.str("");
     ss << dir << "resources/objects/" << "rock/rock.obj";
-    //rock = *(new Model(ss.str()));
+    rock = *(new Model(ss.str()));
 
     unsigned int nbRocks = 3000;
     glm::mat4* modelMatrices;
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
     // -------------
     ss.str("");
     ss << dir << "resources/objects/" << "asteroid/asteroid.obj";
-    Model asteroid;// = *(new Model(ss.str(), false, true));
+    Model asteroid = *(new Model(ss.str(), false, true));
     ss.str("");
     ss << dir << "resources/textures/asteroid/Albedo.jpg";
     unsigned int asteroidDiff = loadTexture(ss.str().c_str());
@@ -465,12 +465,6 @@ int main(int argc, char *argv[])
         model1 = glm::translate(model1, modelPos);
         model1 = glm::translate(model1, 0.7f*trajectoryBinormal);
         model1 = glm::rotate(model1, glm::radians(180.0f), trajectoryBinormal);
-        //float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
-        //float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
-        //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
-        //glm::mat4 mat = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), trajectoryNormal, camera.Up);
-        //glm::vec3 axis = cross(normalize(trajectoryTangent), normalize(camera.Up));
-        //float angle = asin(length(axis));
         glm::mat4 rot = glm::mat4();
         rot[0][0] = trajectoryNormal.x;
         rot[1][0] = trajectoryBinormal.x;
@@ -484,9 +478,7 @@ int main(int argc, char *argv[])
         rot[1][2] = trajectoryBinormal.z;
         rot[2][2] = trajectoryTangent.z;
         model1 = model1*rot;
-        //model = rotate(model, angle, axis);
-        //model = rotate(model, angle2, trajectoryTangent);
-
+    
         model1 = glm::scale(model1, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down        
         spaceship.model = model1;
 
@@ -544,7 +536,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(6.0f, 0.5f, -2.0f));
         setShaderUniforms(asteroidShader, projection, view, model2, camera.Position, far_plane, 2.0f);
-        //asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
+        asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
 
         // Draw rocks
         // ----------
@@ -565,7 +557,7 @@ int main(int argc, char *argv[])
         model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
         setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 2.0f, heightScale, true);
         setTextures(modelShader, skybox, toyboxTexture, toyboxTexture, toyboxNormalTexture, toyboxDispTexture);
-        //renderQuad();
+        renderQuad();
 
         // Draw matrix cube
         // ----------------
@@ -576,7 +568,7 @@ int main(int argc, char *argv[])
         setTextures(containerShader, skybox, containerSpecTexture, containerSpecTexture, 0, 0, 0, matrixEmissionTexture);
         containerShader.use();
         containerShader.setFloat("time", glfwGetTime());
-        //renderCube();
+        renderCube();
 
         // Draw exploding container
         // ------------------------
@@ -594,7 +586,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
         setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
-        //renderFloor();
+        renderFloor();
 
         // Particles
         // -------
@@ -626,7 +618,6 @@ int main(int argc, char *argv[])
           circuitBTNShader.setMat4("model", model);
           circuit.DrawBTN();
         }
-
 
         renderCircuit(circuit, circuitShader, projection, view);
 
