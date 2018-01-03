@@ -9,7 +9,6 @@
 
 struct Particle{
 	glm::vec3 pos, speed;
-	unsigned char r,g,b,a; // Color
 	float size, angle, weight;
 	float life; // Remaining life of the particle. if <0 : dead and unused.
 	float cameradistance; // *Squared* distance to the camera. if dead : -1.0f
@@ -42,7 +41,7 @@ public:
 
     // Position + color
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 8 *sizeof(float) , data, GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 4 *sizeof(float) , data, GL_STREAM_DRAW);
 
     // Attributes
     glBindBuffer(GL_ARRAY_BUFFER, verticesVBO);
@@ -51,15 +50,12 @@ public:
 
     // position + size
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
 
-    // color rgba
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(4 * sizeof(float)));
+
 
     glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
     glVertexAttribDivisor(1, 1); // positions : one per quad (its center) -> 1
-    glVertexAttribDivisor(2, 1); // color : one per quad -> 1
 
     for(int i=0; i<MAX_PARTICLES; i++){
     		ParticlesContainer[i].life = -1.0f;
@@ -77,7 +73,7 @@ public:
 
 		for(int i=0; i<newparticles; i++){
 			int particleIndex = FindUnusedParticle();
-			ParticlesContainer[particleIndex].life = (rand()%200)/100.0f; // This particle will live 5 seconds.
+			ParticlesContainer[particleIndex].life = (rand()%300)/100.0f; // This particle will live 5 seconds.
 			ParticlesContainer[particleIndex].pos = emitterPos;
 
 			float spread = 0.6f;
@@ -92,15 +88,10 @@ public:
 
 			ParticlesContainer[particleIndex].speed = maindir + randomdir*spread;
 
-			// Very bad way to generate a random color
-			ParticlesContainer[particleIndex].r = (rand()%1000)/1000.0f;
-			ParticlesContainer[particleIndex].g = (rand()%1000)/1000.0f;
-			ParticlesContainer[particleIndex].b = (rand()%1000)/1000.0f;
-			ParticlesContainer[particleIndex].a = (rand()%1000)/1000.0f;
       //cout << (rand()%1000)/1000.0f << typeid((rand()%1000)/1000.0f).name();
       //cout << ParticlesContainer[particleIndex].r << ", " << ParticlesContainer[particleIndex].g << ", " << ParticlesContainer[particleIndex].b << ", " << ParticlesContainer[particleIndex].a << endl;
 
-			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.1;
+			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.05;
 		}
   }
 
@@ -118,7 +109,7 @@ public:
 				if (p.life > 0.0f){
 
 					// Simulate simple physics : gravity only, no collisions
-					p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.2f;
+					//p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.2f;
 					p.pos += p.speed * (float)delta;
 					p.cameradistance = glm::length( p.pos - cameraPos )*glm::length( p.pos - cameraPos );
 					//ParticlesContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
@@ -127,14 +118,9 @@ public:
 					data[4*ParticlesCount+0] = p.pos.x;
 					data[4*ParticlesCount+1] = p.pos.y;
 					data[4*ParticlesCount+2] = p.pos.z;
-          //cout << "(" << g_particule_position_size_data[4*ParticlesCount+0] <<", " << g_particule_position_size_data[4*ParticlesCount+1] << ", " << g_particule_position_size_data[4*ParticlesCount+2] <<")" << endl;
 
 					data[4*ParticlesCount+3] = p.size * p.life;
 
-					data[4*ParticlesCount+4] = p.r;
-					data[4*ParticlesCount+5] = p.g;
-					data[4*ParticlesCount+6] = p.b;
-					data[4*ParticlesCount+7] = p.a;
 
 				}else{
 					// Particles that just died will be put at the end of the buffer in SortParticles();
@@ -152,7 +138,6 @@ public:
 		// but this is outside the scope of this tutorial.
 		// http://www.opengl.org/wiki/Buffer_Object_Streaming
 
-    //cout << ParticlesCount << endl;
 
 
 		//glBufferSubData(GL_ARRAY_BUFFER, 0, ParticlesCount * sizeof(GLfloat) * 4, g_particule_position_size_data);
@@ -165,8 +150,8 @@ public:
     glBindVertexArray(VAO);
     // Position + color
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 8 *sizeof(float) , NULL, GL_STREAM_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, ParticlesCount * sizeof(GLfloat) * 8, data);
+    //glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 8 *sizeof(float) , NULL, GL_STREAM_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, ParticlesCount * sizeof(GLfloat) * 4, data);
     // Attributes
     glBindBuffer(GL_ARRAY_BUFFER, verticesVBO);
     glEnableVertexAttribArray(0);
@@ -174,14 +159,11 @@ public:
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)0);
 
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(4 * sizeof(float)));
 
     glVertexAttribDivisor(0, 0); // particles vertices : always reuse the same 4 vertices -> 0
     glVertexAttribDivisor(1, 1); // positions : one per quad (its center) -> 1
-    glVertexAttribDivisor(2, 1); // color : one per quad -> 1
 
     glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, ParticlesCount);
     glBindVertexArray(0);

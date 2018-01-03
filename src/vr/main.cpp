@@ -543,6 +543,48 @@ int main(int argc, char *argv[])
         setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
         setTextures(rocksShader, skybox, rockTexture, rockTexture);
 
+        // Rocks
+        // -------
+        for (unsigned int i = 0; i < nbRocks; i++)
+        {
+            // 4. now add to list of matrices
+            modelMatrices[i] = glm::rotate(modelMatrices[i], deltaTime, glm::vec3(0.4f, 1.0f, 0.0f));
+            //modelMatrices[i] = glm::translate(modelMatrices[i], glm::vec3(0.0f, 0.0f, deltaTime));
+        }
+
+        // configure instanced array
+        // -------------------------
+        unsigned int buffer;
+        glGenBuffers(1, &buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        glBufferData(GL_ARRAY_BUFFER, nbRocks * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+        // set transformation matrices as an instance vertex attribute (with divisor 1)
+        // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
+        // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
+        // -----------------------------------------------------------------------------------------------------------------------------------
+        for (unsigned int i = 0; i < rock.meshes.size(); i++)
+        {
+            unsigned int VAO = rock.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            // set attribute pointers for matrix (4 times vec4)
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+            glEnableVertexAttribArray(5);
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+            glEnableVertexAttribArray(6);
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+            glVertexAttribDivisor(3, 1);
+            glVertexAttribDivisor(4, 1);
+            glVertexAttribDivisor(5, 1);
+            glVertexAttribDivisor(6, 1);
+
+            glBindVertexArray(0);
+        }
+
         for (unsigned int i = 0; i < rock.meshes.size(); i++)
         {
             glBindVertexArray(rock.meshes[i].VAO);
@@ -602,6 +644,8 @@ int main(int argc, char *argv[])
         particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f - trajectoryNormal*1.5f, -trajectoryTangent);
         particles.simulatePhysics(deltaTime, camera.Position);
         particles.Draw();
+
+
 
         // circuit
         // -------
