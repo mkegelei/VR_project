@@ -80,6 +80,7 @@ std::vector<FlashLight*> flashLights;
 //models
 Model ourModel;
 Model asteroid;
+Model rock;
 glm::mat4 model2;
 
 int main(int argc, char *argv[])
@@ -103,6 +104,7 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     // glfw window creation
     // --------------------
@@ -132,11 +134,13 @@ int main(int argc, char *argv[])
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);  
 
     // build and compile shaders
     // -------------------------
     Shader modelShader = createShader("test1.vert", "test1.frag");
     Shader asteroidShader = createShader("asteroid.vert", "asteroid.frag");
+    Shader rocksShader = createShader("rocks.vert", "rocks.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
     Shader containerShader = createShader("container.vert", "container.frag");
@@ -174,6 +178,76 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/objects/" << objName;
     ourModel = *(new Model(ss.str()));
+
+    // Rocks
+    // -----
+    ss.str("");
+    ss << dir << "resources/objects/" << "rock/rock.obj";
+    rock = *(new Model(ss.str()));
+
+    unsigned int nbRocks = 5000;
+    glm::mat4* modelMatrices;
+    modelMatrices = new glm::mat4[nbRocks];
+    srand(glfwGetTime()); // initialize random seed 
+    float radius = 30.0f;
+    float offset = 2.5f;
+    for (unsigned int i = 0; i < nbRocks; i++)
+    {
+        glm::mat4 model;
+        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+        float angle = (float)i / (float)nbRocks * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = sin(angle) * radius + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f; // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        // 2. scale: Scale between 0.05 and 0.25f
+        float scale = (rand() % 20) / 100.0f + 0.05;
+        model = glm::scale(model, glm::vec3(scale));
+
+        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+        float rotAngle = (rand() % 360);
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. now add to list of matrices
+        modelMatrices[i] = model;
+    }
+
+    // configure instanced array
+    // -------------------------
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, nbRocks * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+    // set transformation matrices as an instance vertex attribute (with divisor 1)
+    // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
+    // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
+    // -----------------------------------------------------------------------------------------------------------------------------------
+    for (unsigned int i = 0; i < rock.meshes.size(); i++)
+    {
+        unsigned int VAO = rock.meshes[i].VAO;
+        glBindVertexArray(VAO);
+        // set attribute pointers for matrix (4 times vec4)
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+
+        glBindVertexArray(0);
+    }
 
     // Load asteroid
     // -------------
@@ -264,6 +338,9 @@ int main(int argc, char *argv[])
     ss.str("");
     ss << dir << "resources/textures/bricks2.jpg";  
     unsigned int blockTexture = loadTexture(ss.str().c_str());
+    ss.str("");
+    ss << dir << "resources/textures/rock.png";  
+    unsigned int rockTexture = loadTexture(ss.str().c_str());
 
     // Lights
     // ------
@@ -403,7 +480,7 @@ int main(int argc, char *argv[])
         
         model2 = glm::mat4();
         model2 = glm::rotate(model2, float(glfwGetTime())/4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-        model2 = glm::translate(model2, glm::vec3(asteroidDist, 2.0f, asteroidDist));
+        model2 = glm::translate(model2, glm::vec3(asteroidDist, 0.0f, asteroidDist));
         model2 = glm::rotate(model2, float(glfwGetTime())/2.0f, glm::vec3(0.5f, 0.0f, 1.0f));
         
         asteroid.model = model2;
@@ -450,11 +527,27 @@ int main(int argc, char *argv[])
         ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
         glDisable(GL_CULL_FACE);
 
+        // Draw asteroid
+        // -------------
         glm::mat4 model;
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(6.0f, 0.5f, -2.0f));
-        setShaderUniforms(asteroidShader, projection, view, asteroid.model, camera.Position, far_plane, 2.0f);
+        setShaderUniforms(asteroidShader, projection, view, model2, camera.Position, far_plane, 2.0f);
         asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
+
+        // Draw rocks
+        // ----------
+        //setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
+        //setTextures(rocksShader, skybox, rockTexture, rockTexture);
+        setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
+        setTextures(rocksShader, skybox, rockTexture, rockTexture);
+        
+        for (unsigned int i = 0; i < rock.meshes.size(); i++)
+        {
+            glBindVertexArray(rock.meshes[i].VAO);
+            glDrawElementsInstanced(GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, nbRocks);
+            glBindVertexArray(0);
+        }
 
         // Draw brickwall
         // --------------
@@ -1079,11 +1172,11 @@ void renderSceneForDepth(Shader shader)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     ourModel.DrawForDepth();
+    //shader.setMat4("model", model2);
+    //renderCube();
+    //asteroid.DrawForDepth();
     glCullFace(GL_BACK);
     glDisable(GL_CULL_FACE);
-    shader.setMat4("model", model2);
-    renderCube();
-    //asteroid.DrawForDepth();
     model = glm::mat4();
     shader.setMat4("model", model);
     renderFloor();
