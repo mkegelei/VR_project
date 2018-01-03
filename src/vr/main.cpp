@@ -68,8 +68,8 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
-glm::vec3 circuitPos = glm::vec3(0.0f, 1.8f, 0.0f);
+Camera lightPos(glm::vec3(0.0f,0.0f,0.0f));//1.2f, 1.0f, 2.0f));
+glm::vec3 circuitPos = glm::vec3(0.0f, 0.0f, 0.0f);//0 1.8 0
 //std::vector<DirLight> dirLights;
 DirLight* dirLight;
 unsigned int plId = 0;
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
             objName = argv[2];
         }
         else{
-            objName = "cyborg/cyborg.obj";
+            objName = "ship/ship.obj";
         }
     }
     else{
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
     ss << dir << "resources/objects/" << "rock/rock.obj";
     rock = *(new Model(ss.str()));
 
-    unsigned int nbRocks = 5000;
+    unsigned int nbRocks = 3000;
     glm::mat4* modelMatrices;
     modelMatrices = new glm::mat4[nbRocks];
     srand(glfwGetTime()); // initialize random seed 
@@ -447,12 +447,15 @@ int main(int argc, char *argv[])
 
         // Calculate model position
         glm::mat4 model1;
+        
         glm::vec3 trajectoryPos = circuit.getTrajectoryPos(frameNbr);
         glm::vec3 trajectoryNormal = circuit.getTrajectoryNormal(frameNbr);
         glm::vec3 trajectoryBinormal = circuit.getTrajectoryBinormal(frameNbr);
         glm::vec3 trajectoryTangent = circuit.getTrajectoryTangent(frameNbr);
         glm::vec3 modelPos = circuitPos + trajectoryPos;
-        model1 = glm::translate(model1, modelPos); // translate it down so it's at the center of the scene
+        model1 = glm::translate(model1, modelPos); 
+        model1 = glm::translate(model1, 0.7f*trajectoryBinormal);
+        model1 = glm::rotate(model1, glm::radians(180.0f), trajectoryBinormal);
         //float angle = acos(dot(normalize(trajectoryTangent), normalize(camera.Up)));
         //float angle2 = acos(dot(normalize(trajectoryNormal), normalize(camera.Front)));
         //float angle = atan2(norm(cross(trajectoryNormal,camera.Up)),dot(trajectoryNormal,camera.Up))
@@ -474,7 +477,9 @@ int main(int argc, char *argv[])
         model1 = model1*rot;
         //model = rotate(model, angle, axis);
         //model = rotate(model, angle2, trajectoryTangent);
-        model1 = glm::scale(model1, glm::vec3(0.5f, 0.5f, 0.5f)); // it's a bit too big for our scene, so scale it down
+
+        model1 = glm::scale(model1, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down
+        
         ourModel.model = model1;
 
         
@@ -515,7 +520,6 @@ int main(int argc, char *argv[])
 
         // Draw main model
         // ---------------
-
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -533,12 +537,10 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         model = glm::translate(model, glm::vec3(6.0f, 0.5f, -2.0f));
         setShaderUniforms(asteroidShader, projection, view, model2, camera.Position, far_plane, 2.0f);
-        asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
+        //asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
 
         // Draw rocks
         // ----------
-        //setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
-        //setTextures(rocksShader, skybox, rockTexture, rockTexture);
         setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
         setTextures(rocksShader, skybox, rockTexture, rockTexture);
         
@@ -556,7 +558,7 @@ int main(int argc, char *argv[])
         model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
         setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 2.0f, heightScale, true);
         setTextures(modelShader, skybox, toyboxTexture, toyboxTexture, toyboxNormalTexture, toyboxDispTexture);
-        renderQuad();
+        //renderQuad();
 
         // Draw matrix cube
         // ----------------
@@ -567,7 +569,7 @@ int main(int argc, char *argv[])
         setTextures(containerShader, skybox, containerSpecTexture, containerSpecTexture, 0, 0, 0, matrixEmissionTexture);
         containerShader.use();
         containerShader.setFloat("time", glfwGetTime());
-        renderCube();
+        //renderCube();
 
         // Draw exploding container
         // ------------------------
@@ -577,7 +579,7 @@ int main(int argc, char *argv[])
         setTextures(explodeShader, skybox, blockTexture, blockTexture);
         explodeShader.use();
         explodeShader.setFloat("time", glfwGetTime());
-        renderCube();
+        //renderCube();
 
         // Draw floor
         // ----------
@@ -585,7 +587,7 @@ int main(int argc, char *argv[])
         model = glm::mat4();
         setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
         setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
-        renderFloor();
+        //renderFloor();
 
         // circuit
         // -------
@@ -596,7 +598,7 @@ int main(int argc, char *argv[])
 
         // render the loaded model
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, 1.8f, 0.0f));
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//1.8
         //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
         circuitBTNShader.setMat4("model", model);
         circuit.DrawBTN();
