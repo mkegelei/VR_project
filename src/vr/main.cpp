@@ -78,7 +78,7 @@ unsigned int flId = 0;
 std::vector<FlashLight*> flashLights;
 
 //models
-Model ourModel;
+Model spaceship;
 Model asteroid;
 Model rock;
 glm::mat4 model2;
@@ -139,6 +139,7 @@ int main(int argc, char *argv[])
     // build and compile shaders
     // -------------------------
     Shader modelShader = createShader("test1.vert", "test1.frag");
+    Shader spaceshipShader = createShader("spaceship.vert", "spaceship.frag");
     Shader asteroidShader = createShader("asteroid.vert", "asteroid.frag");
     Shader rocksShader = createShader("rocks.vert", "rocks.frag");
     Shader floorShader = createShader("floor.vert", "floor.frag");
@@ -177,13 +178,15 @@ int main(int argc, char *argv[])
     stringstream ss;
     ss.str("");
     ss << dir << "resources/objects/" << objName;
-    ourModel = *(new Model(ss.str()));
+    spaceship = *(new Model(ss.str()));
+    spaceship.addTexture("s_1024_S.tga", "texture_specular");
+    spaceship.addTexture("s_1024_I.tga", "texture_emission");
 
     // Rocks
     // -----
     ss.str("");
     ss << dir << "resources/objects/" << "rock/rock.obj";
-    rock = *(new Model(ss.str()));
+    //rock = *(new Model(ss.str()));
 
     unsigned int nbRocks = 3000;
     glm::mat4* modelMatrices;
@@ -253,7 +256,7 @@ int main(int argc, char *argv[])
     // -------------
     ss.str("");
     ss << dir << "resources/objects/" << "asteroid/asteroid.obj";
-    Model asteroid = *(new Model(ss.str(), false, true));
+    Model asteroid;// = *(new Model(ss.str(), false, true));
     ss.str("");
     ss << dir << "resources/textures/asteroid/Albedo.jpg";
     unsigned int asteroidDiff = loadTexture(ss.str().c_str());
@@ -480,7 +483,7 @@ int main(int argc, char *argv[])
 
         model1 = glm::scale(model1, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down
         
-        ourModel.model = model1;
+        spaceship.model = model1;
 
         
         model2 = glm::mat4();
@@ -525,10 +528,10 @@ int main(int argc, char *argv[])
         glm::mat4 view = camera.GetViewMatrix();
         // render the loaded model
 
-        setShaderUniforms(modelShader, projection, view, ourModel.model, camera.Position, far_plane, 16.0f);
+        setShaderUniforms(spaceshipShader, projection, view, spaceship.model, camera.Position, far_plane, 16.0f);
 
         glEnable(GL_CULL_FACE);
-        ourModel.DrawWithShadow(modelShader, dirLight, pointLights, flashLights, skybox);
+        spaceship.DrawWithShadow(spaceshipShader, dirLight, pointLights, flashLights, skybox);
         glDisable(GL_CULL_FACE);
 
         // Draw asteroid
@@ -1170,10 +1173,10 @@ void renderSceneForDepth(Shader shader)
 {
     glm::mat4 model;
     //shader.use();
-    shader.setMat4("model", ourModel.model);
+    shader.setMat4("model", spaceship.model);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
-    ourModel.DrawForDepth();
+    spaceship.DrawForDepth();
     //shader.setMat4("model", model2);
     //renderCube();
     //asteroid.DrawForDepth();

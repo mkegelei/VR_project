@@ -64,6 +64,32 @@ public:
         for(unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].DrawForDepth();
     }
+
+    void addTexture(string str, string typeName)
+    {
+        bool skip = false;
+        Texture texture;
+        for(unsigned int j = 0; j < textures_loaded.size(); j++)
+        {
+            if(std::strcmp(textures_loaded[j].path.data(), str.c_str()) == 0)
+            {
+                texture = textures_loaded[j];
+                skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+            }
+        }
+        if(!skip)
+        {   // if texture hasn't been loaded already, load it
+            if(typeName == "texture_diffuse")
+                texture.id = TextureFromFile(str.c_str(), this->directory, false);
+            else
+                texture.id = TextureFromFile(str.c_str(), this->directory);
+            texture.type = typeName;
+            texture.path = str.c_str();
+            textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
+        }
+        for(unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].textures.push_back(texture);
+    }
     
 private:
     /*  Functions   */
@@ -206,6 +232,7 @@ private:
     // the required info is returned as a Texture struct.
     vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
     {
+        
         vector<Texture> textures;
         for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
         {
@@ -237,6 +264,7 @@ private:
         }
         return textures;
     }
+
 };
 
 
@@ -279,6 +307,7 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
         std::cout << "Texture failed to load at path: " << path << std::endl;
         stbi_image_free(data);
     }
+    cout << textureID << endl;
 
     return textureID;
 }
