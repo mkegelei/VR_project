@@ -1,6 +1,6 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
-#define MAX_PARTICLES 15000
+#define MAX_PARTICLES 30000
 // Inspired by http://www.opengl-tutorial.org/fr/intermediate-tutorials/billboards-particles/particles-instancing/
 #include <map>
 #include <vector>
@@ -73,7 +73,7 @@ public:
 
 		for(int i=0; i<newparticles; i++){
 			int particleIndex = FindUnusedParticle();
-			ParticlesContainer[particleIndex].life = (rand()%200)/100.0f; // This particle will live 5 seconds.
+			ParticlesContainer[particleIndex].life = (rand()%300)/100.0f; // This particle will live 5 seconds.
 			ParticlesContainer[particleIndex].pos = emitterPos;
 
 			float spread = 0.6f;
@@ -91,7 +91,7 @@ public:
       //cout << (rand()%1000)/1000.0f << typeid((rand()%1000)/1000.0f).name();
       //cout << ParticlesContainer[particleIndex].r << ", " << ParticlesContainer[particleIndex].g << ", " << ParticlesContainer[particleIndex].b << ", " << ParticlesContainer[particleIndex].a << endl;
 
-			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.1;
+			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.05;
 		}
   }
 
@@ -109,7 +109,7 @@ public:
 				if (p.life > 0.0f){
 
 					// Simulate simple physics : gravity only, no collisions
-					p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.2f;
+					//p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.2f;
 					p.pos += p.speed * (float)delta;
 					p.cameradistance = glm::length( p.pos - cameraPos )*glm::length( p.pos - cameraPos );
 					//ParticlesContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
