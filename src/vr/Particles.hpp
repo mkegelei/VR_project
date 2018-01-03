@@ -77,7 +77,7 @@ public:
 
 		for(int i=0; i<newparticles; i++){
 			int particleIndex = FindUnusedParticle();
-			ParticlesContainer[particleIndex].life = 0.8f; // This particle will live 5 seconds.
+			ParticlesContainer[particleIndex].life = (rand()%100)/100.0f; // This particle will live 5 seconds.
 			ParticlesContainer[particleIndex].pos = emitterPos;
 
 			float spread = 1.5f;
@@ -118,7 +118,7 @@ public:
 				if (p.life > 0.0f){
 
 					// Simulate simple physics : gravity only, no collisions
-					p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.5f;
+					p.speed += glm::vec3(0.0f,-9.81f, 0.0f) * (float)delta * 0.2f;
 					p.pos += p.speed * (float)delta;
 					p.cameradistance = glm::length( p.pos - cameraPos )*glm::length( p.pos - cameraPos );
 					//ParticlesContainer[i].pos += glm::vec3(0.0f,10.0f, 0.0f) * (float)delta;
@@ -129,7 +129,7 @@ public:
 					data[4*ParticlesCount+2] = p.pos.z;
           //cout << "(" << g_particule_position_size_data[4*ParticlesCount+0] <<", " << g_particule_position_size_data[4*ParticlesCount+1] << ", " << g_particule_position_size_data[4*ParticlesCount+2] <<")" << endl;
 
-					data[4*ParticlesCount+3] = p.size;
+					data[4*ParticlesCount+3] = p.size * p.life;
 
 					data[4*ParticlesCount+4] = p.r;
 					data[4*ParticlesCount+5] = p.g;
