@@ -98,7 +98,7 @@ public:
 			ParticlesContainer[particleIndex].b = (rand()%1000)/1000.0f;
 			ParticlesContainer[particleIndex].a = (rand()%1000)/1000.0f;
       //cout << (rand()%1000)/1000.0f << typeid((rand()%1000)/1000.0f).name();
-      cout << ParticlesContainer[particleIndex].r << ", " << ParticlesContainer[particleIndex].g << ", " << ParticlesContainer[particleIndex].b << ", " << ParticlesContainer[particleIndex].a << endl;
+      //cout << ParticlesContainer[particleIndex].r << ", " << ParticlesContainer[particleIndex].g << ", " << ParticlesContainer[particleIndex].b << ", " << ParticlesContainer[particleIndex].a << endl;
 
 			ParticlesContainer[particleIndex].size = ((rand()%1000)/2000.0f + 0.1f)*0.05;
 		}
@@ -163,7 +163,6 @@ public:
     // for(i in ParticlesCount) : glDrawArrays(GL_TRIANGLE_STRIP, 0, 4),
     // but faster.
     glBindVertexArray(VAO);
-    cout << ParticlesCount << endl;
     // Position + color
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, MAX_PARTICLES * 8 *sizeof(float) , NULL, GL_STREAM_DRAW);

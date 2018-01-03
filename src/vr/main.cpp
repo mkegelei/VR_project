@@ -591,13 +591,15 @@ int main(int argc, char *argv[])
         setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
         renderFloor();
 
+        // Particles
+        // -------
+
         particlesShader.use();
         particlesShader.setMat4("projection", projection);
         particlesShader.setMat4("view", view);
         model = glm::mat4();
-        //model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
-
         particlesShader.setMat4("model", model);
+        particlesShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
         particles.generateParticles(deltaTime, modelPos, -trajectoryTangent);
         particles.simulatePhysics(deltaTime, camera.Position);
         particles.Draw();
