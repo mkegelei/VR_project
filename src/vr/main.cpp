@@ -14,6 +14,7 @@
 #include <DepthMap.hpp>
 #include <Light.hpp>
 #include <Circuit.hpp>
+#include <Particles.hpp>
 
 #include <iostream>
 
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);  
+    glEnable(GL_MULTISAMPLE);
 
     // build and compile shaders
     // -------------------------
@@ -163,6 +164,8 @@ int main(int argc, char *argv[])
     Shader circuitShader = createShader("circuitLaser.vert", "circuitLaser.frag");
     Shader circuitBTNShader = createShader("circuitBTN.vert", "circuitBTN.frag", "circuitBTN.geom");
 
+    Shader particlesShader = createShader("particle.vert", "particle.frag");
+
     Shader hdrShader = createShader("hdr.vert", "hdr.frag");
     hdrShader.use();
     hdrShader.setInt("scene", 0);
@@ -188,7 +191,7 @@ int main(int argc, char *argv[])
     unsigned int nbRocks = 3000;
     glm::mat4* modelMatrices;
     modelMatrices = new glm::mat4[nbRocks];
-    srand(glfwGetTime()); // initialize random seed 
+    srand(glfwGetTime()); // initialize random seed
     float radius = 30.0f;
     float offset = 2.5f;
     for (unsigned int i = 0; i < nbRocks; i++)
@@ -276,6 +279,7 @@ int main(int argc, char *argv[])
     // -------
 
     Circuit circuit = Circuit();
+    Particles particles = Particles();
 
     // load skybox textures
     // --------------------
@@ -336,10 +340,10 @@ int main(int argc, char *argv[])
     ss << dir << "resources/textures/container2_specular.png";
     unsigned int containerSpecTexture = loadTexture(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/bricks2.jpg";  
+    ss << dir << "resources/textures/bricks2.jpg";
     unsigned int blockTexture = loadTexture(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/rock.png";  
+    ss << dir << "resources/textures/rock.png";
     unsigned int rockTexture = loadTexture(ss.str().c_str());
 
     // Lights
@@ -482,14 +486,14 @@ int main(int argc, char *argv[])
         
         ourModel.model = model1;
 
-        
+
         model2 = glm::mat4();
         model2 = glm::rotate(model2, float(glfwGetTime())/4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         model2 = glm::translate(model2, glm::vec3(asteroidDist, 0.0f, asteroidDist));
         model2 = glm::rotate(model2, float(glfwGetTime())/2.0f, glm::vec3(0.5f, 0.0f, 1.0f));
-        
+
         asteroid.model = model2;
-        
+
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
@@ -543,7 +547,7 @@ int main(int argc, char *argv[])
         // ----------
         setShaderUniforms(rocksShader, projection, view, glm::mat4(), camera.Position, far_plane, 2.0f);
         setTextures(rocksShader, skybox, rockTexture, rockTexture);
-        
+
         for (unsigned int i = 0; i < rock.meshes.size(); i++)
         {
             glBindVertexArray(rock.meshes[i].VAO);
@@ -588,6 +592,19 @@ int main(int argc, char *argv[])
         setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
         setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
         //renderFloor();
+
+        // Particles
+        // -------
+
+        particlesShader.use();
+        particlesShader.setMat4("projection", projection);
+        particlesShader.setMat4("view", view);
+        model = glm::mat4();
+        particlesShader.setMat4("model", model);
+        particlesShader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
+        particles.generateParticles(deltaTime, modelPos, -trajectoryTangent);
+        particles.simulatePhysics(deltaTime, camera.Position);
+        particles.Draw();
 
         // circuit
         // -------
