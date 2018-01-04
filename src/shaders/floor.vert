@@ -33,7 +33,7 @@ void main()
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);
     mat3 TBN = transpose(mat3(T, B, N));
-    //TBN = mat3(1.0f);
+    TBN = mat3(1.0f);
     vert_out.TBN = TBN;
 
     gl_Position = projection * view * vec4(vert_out.FragPos, 1.0);

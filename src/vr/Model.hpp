@@ -307,7 +307,6 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
         std::cout << "Texture failed to load at path: " << path << std::endl;
         stbi_image_free(data);
     }
-    
     return textureID;
 }
 #endif

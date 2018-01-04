@@ -25,7 +25,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path, bool gamma = false);
 unsigned int loadCubemap(vector<std::string> faces);
-Shader createShader(const char* vert, const char* frag, const char* geom = nullptr);
+Shader createShader(const char* vert, const char* frag, const char* geom = nullptr, const char* tesc = nullptr, const char* tese = nullptr);
 void setTextures(Shader shader, unsigned int skybox, unsigned int diffuseTex = 0, unsigned int specularTex = 0, unsigned int normalTex = 0, unsigned int heightTex = 0, unsigned int reflectionTex = 0, unsigned int emissionTex = 0);
 void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view, glm::mat4 model, glm::vec3 viewPos, float far_plane, float shininess, float heightScale = 0.1, bool parallax = false, bool reflection = false, bool refraction = false, float materialRefraction = 1.00f, float worldRefraction = 1.00f);
 float lerp(float a, float b, float f);
@@ -39,6 +39,7 @@ void renderCube();
 void renderFloor();
 void renderTestQuad();
 void renderQuad();
+void renderIco();
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -59,9 +60,13 @@ bool bloomKeyPressed = false;
 bool btn = false;
 bool btnKeyPressed = false;
 float exposure = 1.0f;
+bool showParticles = true;
+bool particlesKeyPressed = false;
+bool asteroidRot = true;
+bool asteroidKeyPressed = false;
 
 // camera
-Camera camera(glm::vec3(0.0f, 2.0f, 6.0f));
+Camera camera(glm::vec3(0.0f, 4.0f, 8.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -84,6 +89,7 @@ std::vector<FlashLight*> flashLights;
 Model spaceship;
 Model asteroid;
 Model rock;
+Model floorObj;
 glm::mat4 model2; //can't be stored in asteroid.model for some obscure reason
 
 int main(int argc, char *argv[])
@@ -138,6 +144,8 @@ int main(int argc, char *argv[])
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // build and compile shaders
     // -------------------------
@@ -149,6 +157,7 @@ int main(int argc, char *argv[])
     Shader lampShader = createShader("lamp.vert", "lamp.frag");
     Shader containerShader = createShader("container.vert", "container.frag");
     Shader explodeShader = createShader("explode.vert", "explode.frag", "explode.geom");
+    Shader icoShader = createShader("ico.vert", "ico.frag", "ico.geom", "ico.tesc", "ico.tese");
 
     Shader skyboxShader = createShader("skybox.vert", "skybox.frag");
     skyboxShader.use();
@@ -187,6 +196,10 @@ int main(int argc, char *argv[])
     spaceship.addTexture("s_1024_S.tga", "texture_specular");
     spaceship.addTexture("s_1024_I.tga", "texture_emission");
 
+
+    ss.str("");
+    ss << dir << "resources/objects/" << "floor.obj";
+    floorObj = *(new Model(ss.str()));
     // Rocks
     // -----
     ss.str("");
@@ -222,39 +235,6 @@ int main(int argc, char *argv[])
 
         // 4. now add to list of matrices
         modelMatrices[i] = model;
-    }
-
-    // configure instanced array
-    // -------------------------
-    unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, nbRocks * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
-
-    // set transformation matrices as an instance vertex attribute (with divisor 1)
-    // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
-    // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
-    // -----------------------------------------------------------------------------------------------------------------------------------
-    for (unsigned int i = 0; i < rock.meshes.size(); i++)
-    {
-        unsigned int VAO = rock.meshes[i].VAO;
-        glBindVertexArray(VAO);
-        // set attribute pointers for matrix (4 times vec4)
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
-
-        glVertexAttribDivisor(3, 1);
-        glVertexAttribDivisor(4, 1);
-        glVertexAttribDivisor(5, 1);
-        glVertexAttribDivisor(6, 1);
-
-        glBindVertexArray(0);
     }
 
     // Load asteroid
@@ -354,6 +334,7 @@ int main(int argc, char *argv[])
     // Lights
     // ------
     dirLight = new DirLight(0, depthShader, glm::vec3(-15.0f, 10.0f, 30.0f),
+        //glm::vec3(0.0,0.0,0.0),glm::vec3(0.0,0.0,0.0),glm::vec3(0.0,0.0,0.0),
         glm::vec3(0.15f, 0.05f, 0.05f), glm::vec3(2.4f, 0.8f, 0.8f), glm::vec3(3.0f, 1.0f, 1.0f),
         near_plane, far_plane);
 
@@ -533,8 +514,6 @@ int main(int argc, char *argv[])
         // Draw asteroid
         // -------------
         glm::mat4 model;
-        model = glm::mat4();
-        model = glm::translate(model, glm::vec3(6.0f, 0.5f, -2.0f));
         setShaderUniforms(asteroidShader, projection, view, model2, camera.Position, far_plane, 2.0f);
         asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
 
@@ -545,44 +524,46 @@ int main(int argc, char *argv[])
 
         // Rocks
         // -------
-        for (unsigned int i = 0; i < nbRocks; i++)
+        if(asteroidRot)
         {
-            // 4. now add to list of matrices
-            modelMatrices[i] = glm::rotate(modelMatrices[i], deltaTime, glm::vec3(0.4f, 1.0f, 0.0f));
-            //modelMatrices[i] = glm::translate(modelMatrices[i], glm::vec3(0.0f, 0.0f, deltaTime));
-        }
+            for (unsigned int i = 0; i < nbRocks; i++)
+            {
+                modelMatrices[i] = glm::rotate(modelMatrices[i], deltaTime, glm::vec3(0.4f, 1.0f, 0.0f));
+                //modelMatrices[i] = glm::translate(modelMatrices[i], glm::vec3(0.0f, 0.0f, deltaTime));
+            }
 
-        // configure instanced array
-        // -------------------------
-        unsigned int buffer;
-        glGenBuffers(1, &buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, buffer);
-        glBufferData(GL_ARRAY_BUFFER, nbRocks * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+            // configure instanced array
+            // -------------------------
+            unsigned int buffer;
+            glGenBuffers(1, &buffer);
+            glBindBuffer(GL_ARRAY_BUFFER, buffer);
+            glBufferData(GL_ARRAY_BUFFER, nbRocks * sizeof(glm::mat4), &modelMatrices[0], GL_STREAM_DRAW);
 
-        // set transformation matrices as an instance vertex attribute (with divisor 1)
-        // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
-        // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
-        // -----------------------------------------------------------------------------------------------------------------------------------
-        for (unsigned int i = 0; i < rock.meshes.size(); i++)
-        {
-            unsigned int VAO = rock.meshes[i].VAO;
-            glBindVertexArray(VAO);
-            // set attribute pointers for matrix (4 times vec4)
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
-            glEnableVertexAttribArray(4);
-            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
-            glEnableVertexAttribArray(5);
-            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
-            glEnableVertexAttribArray(6);
-            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+            // set transformation matrices as an instance vertex attribute (with divisor 1)
+            // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
+            // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
+            // -----------------------------------------------------------------------------------------------------------------------------------
+            for (unsigned int i = 0; i < rock.meshes.size(); i++)
+            {
+                unsigned int VAO = rock.meshes[i].VAO;
+                glBindVertexArray(VAO);
+                // set attribute pointers for matrix (4 times vec4)
+                glEnableVertexAttribArray(3);
+                glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+                glEnableVertexAttribArray(4);
+                glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+                glEnableVertexAttribArray(5);
+                glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+                glEnableVertexAttribArray(6);
+                glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
 
-            glVertexAttribDivisor(3, 1);
-            glVertexAttribDivisor(4, 1);
-            glVertexAttribDivisor(5, 1);
-            glVertexAttribDivisor(6, 1);
+                glVertexAttribDivisor(3, 1);
+                glVertexAttribDivisor(4, 1);
+                glVertexAttribDivisor(5, 1);
+                glVertexAttribDivisor(6, 1);
 
-            glBindVertexArray(0);
+                glBindVertexArray(0);
+            }
         }
 
         for (unsigned int i = 0; i < rock.meshes.size(); i++)
@@ -601,6 +582,17 @@ int main(int argc, char *argv[])
         setTextures(modelShader, skybox, toyboxTexture, toyboxTexture, toyboxNormalTexture, toyboxDispTexture);
         renderQuad();
 
+        // Draw ico
+        // --------
+        model = glm::mat4();
+        setShaderUniforms(icoShader, projection, view, model, camera.Position, far_plane, 6.0f);
+        setTextures(icoShader, skybox);
+        icoShader.use();
+        icoShader.setVec3("material.color", glm::vec3(0.0f, 0.0f, 1.0f));
+        icoShader.setFloat("TessLevelInner", 4.0f);
+        icoShader.setFloat("TessLevelOuter", 4.0f);
+        renderIco();
+
         // Draw matrix cube
         // ----------------
 
@@ -614,53 +606,58 @@ int main(int argc, char *argv[])
 
         // Draw exploding container
         // ------------------------
-        model = glm::mat4();
+        /*model = glm::mat4();
         model = glm::translate(model, glm::vec3(-0.5f, 2.0f, -8.0f));
         setShaderUniforms(explodeShader, projection, view, model, camera.Position, far_plane, 2.0f);
         setTextures(explodeShader, skybox, blockTexture, blockTexture);
         explodeShader.use();
         explodeShader.setFloat("time", glfwGetTime());
-        //renderCube();
+        renderCube();*/
 
         // Draw floor
         // ----------
 
         model = glm::mat4();
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, -2.0f));
+        model = glm::scale(model, glm::vec3(5.0f, 0.15f, 5.0f));
         setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
         setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
-        renderFloor();
+        //renderFloor();
+        floorObj.DrawForDepth();
 
         // Particles
         // -------
-
-        particlesShader.use();
-        particlesShader.setMat4("projection", projection);
-        particlesShader.setMat4("view", view);
-        model = glm::mat4();
-        particlesShader.setMat4("model", model);
-        particlesShader.setVec3("lightColor", glm::vec3(0.0f, 10.0f, 0.0f));
-        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.7f, -trajectoryTangent);
-        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f + trajectoryNormal*1.6f, -trajectoryTangent);
-        particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f - trajectoryNormal*1.5f, -trajectoryTangent);
-        particles.simulatePhysics(deltaTime, camera.Position);
-        particles.Draw();
-
+        if(showParticles)
+        {
+            particlesShader.use();
+            particlesShader.setMat4("projection", projection);
+            particlesShader.setMat4("view", view);
+            model = glm::mat4();
+            particlesShader.setMat4("model", model);
+            particlesShader.setVec3("lightColor", glm::vec3(0.0f, 10.0f, 0.0f));
+            particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.7f, -trajectoryTangent);
+            particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f + trajectoryNormal*1.6f, -trajectoryTangent);
+            particles.generateParticles(deltaTime, modelPos - trajectoryTangent*1.2f + trajectoryBinormal*0.2f - trajectoryNormal*1.5f, -trajectoryTangent);
+            particles.simulatePhysics(deltaTime, camera.Position);
+            particles.Draw();
+        }
 
 
         // circuit
         // -------
 
-        if (btn) {
-          circuitBTNShader.use();
-          circuitBTNShader.setMat4("projection", projection);
-          circuitBTNShader.setMat4("view", view);
+        if (btn) 
+        {
+            circuitBTNShader.use();
+            circuitBTNShader.setMat4("projection", projection);
+            circuitBTNShader.setMat4("view", view);
 
-          // render the loaded model
-          model = glm::mat4();
-          model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//1.8
-          //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
-          circuitBTNShader.setMat4("model", model);
-          circuit.DrawBTN();
+            // render the loaded model
+            model = glm::mat4();
+            model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//1.8
+            //model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // it's a bit too big for our scene, so scale it down
+            circuitBTNShader.setMat4("model", model);
+            circuit.DrawBTN();
         }
 
         renderCircuit(circuit, circuitShader, projection, view);
@@ -830,6 +827,25 @@ void processInput(GLFWwindow *window)
     {
         exposure += 0.001f;
     }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !particlesKeyPressed)
+    {
+        showParticles = !showParticles;
+        particlesKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE)
+    {
+        particlesKeyPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS && !asteroidKeyPressed)
+    {
+        asteroidRot = !asteroidRot;
+        asteroidKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_O) == GLFW_RELEASE)
+    {
+        asteroidKeyPressed = false;
+    }
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -948,7 +964,7 @@ unsigned int loadCubemap(vector<std::string> faces)
 }
 
 
-Shader createShader(const char* vert, const char* frag, const char* geom)
+Shader createShader(const char* vert, const char* frag, const char* geom, const char* tesc, const char* tese)
 {
     stringstream ss1;
     stringstream ss2;
@@ -959,7 +975,19 @@ Shader createShader(const char* vert, const char* frag, const char* geom)
     {
         stringstream ss3;
         ss3 << dir << "src/shaders/" << geom;
-        shader = new Shader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+        if(tesc != nullptr)
+        {
+            stringstream ss4;
+            ss4 << dir << "src/shaders/" << tesc;
+            stringstream ss5;
+            ss5 << dir << "src/shaders/" << tese;  
+            shader = new Shader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str(), ss4.str().c_str(), ss5.str().c_str());
+         
+        }
+        else
+        {
+            shader = new Shader(ss1.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+        }
     }
     else
     {
@@ -1102,6 +1130,83 @@ void setShaderUniforms(Shader shader, glm::mat4 projection, glm::mat4 view,
 
 }
 
+float lerp(float a, float b, float f)
+{
+    return a + f * (b - a);
+}
+
+void renderDepthMap(DirLight* dirLight)
+{
+    dirLight->updateLightVariables();
+    dirLight->shader.use();
+    dirLight->shader.setMat4("lightSpaceMatrix", dirLight->lightSpaceMatrix);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, dirLight->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, dirLight->SHADOW_WIDTH, dirLight->SHADOW_HEIGHT);
+    renderSceneForDepth(dirLight->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderDepthMap(PointLight* light)
+{
+    light->updateLightVariables();
+    light->shader.use();
+    for (unsigned int i = 0; i < 6; ++i)
+        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
+    light->shader.setFloat("far_plane", light->far_plane);
+    light->shader.setVec3("lightPos", light->position);
+
+    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    renderSceneForDepth(light->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void renderDepthMap(FlashLight* light)
+{
+    light->updateLightVariables();
+    light->shader.use();
+    for (unsigned int i = 0; i < 6; ++i)
+        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
+    light->shader.setFloat("far_plane", light->far_plane);
+    light->shader.setVec3("lightPos", light->position);
+
+    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
+    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    renderSceneForDepth(light->shader);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void renderSceneForDepth(Shader shader)
+{
+    glm::mat4 model;
+    //shader.use();
+    shader.setMat4("model", spaceship.model);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    spaceship.DrawForDepth();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(0.0f, -1.0f, -2.0f));
+    model = glm::scale(model, glm::vec3(5.0f, 0.15f, 5.0f));
+    shader.setMat4("model", model);
+    floorObj.DrawForDepth();
+    glCullFace(GL_BACK);
+    glDisable(GL_CULL_FACE);
+    //renderFloor();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
+    shader.setMat4("model", model);
+    renderQuad();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+    shader.setMat4("model", model);
+    renderCube();
+}
+
 unsigned int skyboxVAO = 0;
 unsigned int skyboxVBO;
 void renderSkybox(unsigned int texture)
@@ -1183,84 +1288,6 @@ void renderCircuit(Circuit circuit, Shader shader, glm::mat4 projection, glm::ma
 
   shader.setVec3("lightColor", glm::vec3(10.0f, 0.0f, 0.0f));
   circuit.DrawCylinders();
-}
-
-float lerp(float a, float b, float f)
-{
-    return a + f * (b - a);
-}
-
-void renderDepthMap(DirLight* dirLight)
-{
-    dirLight->updateLightVariables();
-    dirLight->shader.use();
-    dirLight->shader.setMat4("lightSpaceMatrix", dirLight->lightSpaceMatrix);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, dirLight->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, dirLight->SHADOW_WIDTH, dirLight->SHADOW_HEIGHT);
-    renderSceneForDepth(dirLight->shader);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void renderDepthMap(PointLight* light)
-{
-    light->updateLightVariables();
-    light->shader.use();
-    for (unsigned int i = 0; i < 6; ++i)
-        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
-    light->shader.setFloat("far_plane", light->far_plane);
-    light->shader.setVec3("lightPos", light->position);
-
-    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    renderSceneForDepth(light->shader);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-}
-
-void renderDepthMap(FlashLight* light)
-{
-    light->updateLightVariables();
-    light->shader.use();
-    for (unsigned int i = 0; i < 6; ++i)
-        light->shader.setMat4("shadowMatrices[" + std::to_string(i) + "]", light->shadowTransforms[i]);
-    light->shader.setFloat("far_plane", light->far_plane);
-    light->shader.setVec3("lightPos", light->position);
-
-    glViewport(0, 0, light->SHADOW_WIDTH, light->SHADOW_HEIGHT);
-    glBindFramebuffer(GL_FRAMEBUFFER, light->depthMap.FBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    renderSceneForDepth(light->shader);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void renderSceneForDepth(Shader shader)
-{
-    glm::mat4 model;
-    //shader.use();
-    shader.setMat4("model", spaceship.model);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    spaceship.DrawForDepth();
-    //shader.setMat4("model", model2);
-    //renderCube();
-    //asteroid.DrawForDepth();
-    glCullFace(GL_BACK);
-    glDisable(GL_CULL_FACE);
-    model = glm::mat4();
-    shader.setMat4("model", model);
-    renderFloor();
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
-    shader.setMat4("model", model);
-    renderQuad();
-    model = glm::mat4();
-    model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
-    shader.setMat4("model", model);
-    renderCube();
-
 }
 
 // renderCube() renders a 1x1 3D cube in NDC.
@@ -1557,5 +1584,76 @@ void renderQuad()
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
+unsigned int icoVAO = 0;
+unsigned int icoVBO;
+unsigned int indicesVBO;
+GLsizei IndexCount;
+void renderIco()
+{
+    if(icoVAO == 0)
+    {
+        const int Faces[] = {
+            2, 1, 0,
+            3, 2, 0,
+            4, 3, 0,
+            5, 4, 0,
+            1, 5, 0,
+
+            11, 6,  7,
+            11, 7,  8,
+            11, 8,  9,
+            11, 9,  10,
+            11, 10, 6,
+
+            1, 2, 6,
+            2, 3, 7,
+            3, 4, 8,
+            4, 5, 9,
+            5, 1, 10,
+
+            2,  7, 6,
+            3,  8, 7,
+            4,  9, 8,
+            5, 10, 9,
+            1, 6, 10 };
+
+        const float icoVertices[] = {
+             0.000f,  0.000f,  1.000f,
+             0.894f,  0.000f,  0.447f,
+             0.276f,  0.851f,  0.447f,
+            -0.724f,  0.526f,  0.447f,
+            -0.724f, -0.526f,  0.447f,
+             0.276f, -0.851f,  0.447f,
+             0.724f,  0.526f, -0.447f,
+            -0.276f,  0.851f, -0.447f,
+            -0.894f,  0.000f, -0.447f,
+            -0.276f, -0.851f, -0.447f,
+             0.724f, -0.526f, -0.447f,
+             0.000f,  0.000f, -1.000f };
+
+        IndexCount = sizeof(Faces) / sizeof(Faces[0]);
+
+        // Create the VAO:
+        glGenVertexArrays(1, &icoVAO);
+        glBindVertexArray(icoVAO);
+
+        // Create the VBO for positions:
+        glGenBuffers(1, &icoVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, icoVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(icoVertices), icoVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
+        // Create the VBO for indices:
+        glGenBuffers(1, &indicesVBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesVBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Faces), Faces, GL_STATIC_DRAW);
+    }
+    glBindVertexArray(icoVAO);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
+    glDrawElements(GL_PATCHES, IndexCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

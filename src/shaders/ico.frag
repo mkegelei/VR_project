@@ -1,12 +1,11 @@
-#version 330 core
+#version 430 core
+
 layout (location = 0) out vec4 FragColor;
 layout (location = 1) out vec4 BrightColor;
 
 struct Material {
-    sampler2D texture_diffuse1;
-    sampler2D texture_specular1; 
-    sampler2D texture_normal1;   
     float shininess;
+    vec3 color;
 }; 
 
 struct DirLight {
@@ -48,16 +47,14 @@ struct FlashLight {
     samplerCube flashShadowMap;
 };
 
-in VERT_OUT {
-    vec3 FragPos;
-    vec3 Normal;
-    vec2 TexCoords;
-    vec4 FragPosLightSpace;
-    mat3 TBN;
-} frag_in;
+in vec3 gFacetNormal;
+in vec3 gTriDistance;
+in vec3 gPatchDistance;
+in vec3 gPosition;
 
 uniform float far_plane;
 uniform sampler2D dirShadowMap; 
+uniform mat4 lightSpaceMatrix;
 
 #define NR_POINT_LIGHTS 1
 #define NR_FLASH_LIGHTS 2
@@ -67,6 +64,7 @@ uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform FlashLight flashLights[NR_FLASH_LIGHTS];
 uniform Material material;
+uniform samplerCube skybox;
 
 // array of offset direction for sampling
 vec3 gridSamplingDisk[20] = vec3[]
@@ -79,65 +77,74 @@ vec3 gridSamplingDisk[20] = vec3[]
 );
 
 // function prototypes
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConservation, vec4 fragPosLightSpace, vec2 texCoords);
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords);
-vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords);
+vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConservation, vec4 fragPosLightSpace);
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation);
+vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation);
 float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light);
 float PointShadowCalculation(vec3 fragPos, PointLight light);
 float FlashShadowCalculation(vec3 fragPos, FlashLight light);
+
+float amplify(float d, float scale, float offset)
+{
+    d = scale * d + offset;
+    d = clamp(d, 0, 1);
+    d = 1 - exp2(-2*d*d);
+    return d;
+}
 
 void main()
 {
     const float kPi = 3.14159265;
 
     // properties
-    vec3 viewDir = normalize(frag_in.TBN * (viewPos - frag_in.FragPos));
-
-    vec2 texCoords = frag_in.TexCoords;
+    vec3 viewDir = normalize(viewPos - gPosition);
 
     // obtain normal from normal map in range [0,1]
-    vec3 norm = normalize(frag_in.Normal);
-    //vec3 norm = texture(material.texture_normal1, texCoords).rgb;
-    // transform normal vector to range [-1,1]
-    //norm = normalize(norm * 2.0 - 1.0);  // this normal is in tangent space
+    vec3 norm = -normalize(gFacetNormal);
 
     float kEnergyConservation = ( 8.0 + material.shininess ) / ( 8.0 * kPi ); 
     
+    vec4 gPositionLightSpace = lightSpaceMatrix * vec4(gPosition, 1.0);
     // phase 1: directional lighting
-    vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, frag_in.FragPosLightSpace, texCoords);
+    vec3 result = CalcDirLight(dirLight, norm, viewDir, kEnergyConservation, gPositionLightSpace);
     //vec3 result = vec3(0.0f, 0.0f, 0.0f);
     // phase 2: point lights
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        result += CalcPointLight(pointLights[i], norm, frag_in.FragPos, viewDir, kEnergyConservation, texCoords);    
+        result += CalcPointLight(pointLights[i], norm, gPosition, viewDir, kEnergyConservation);    
     // phase 3: flash light
     for(int j = 0; j < NR_FLASH_LIGHTS; j++)
-        result += CalcFlashLight(flashLights[j], norm, frag_in.FragPos, viewDir, kEnergyConservation, texCoords);
+        result += CalcFlashLight(flashLights[j], norm, gPosition, viewDir, kEnergyConservation);
 
-    FragColor = vec4(result, 1.0);
+    float d1 = min(min(gTriDistance.x, gTriDistance.y), gTriDistance.z);
+    float d2 = min(min(gPatchDistance.x, gPatchDistance.y), gPatchDistance.z);
+    result = amplify(d1, 40, -0.5) * amplify(d2, 60, -0.5) * result;
+
+    FragColor = vec4(result, 0.2);
     float gamma = 1.0;
     FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
+    if(FragColor.b < 0.1)
+        FragColor = vec4(result, 1.0);
     
     // check whether result is higher than some threshold, if so, output as bloom threshold color
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
     BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
-    if(brightness > 1.5)
-        BrightColor = vec4(result, 1.0);
-    
+    if(brightness > 0.0)
+        BrightColor = vec4(result, 1.0); 
 }
 
 // calculates the color when using a directional light.
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConservation, vec4 fragPosLightSpace, vec2 texCoords)
+vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConservation, vec4 fragPosLightSpace)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (-light.direction));
+    vec3 lightDir = normalize(-light.direction);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, texCoords));
+    vec3 ambient = light.ambient * material.color;
+    vec3 diffuse = light.diffuse * diff * material.color;
+    vec3 specular = light.specular * spec * material.color;
     // calculate shadow
     float shadow = DirShadowCalculation(fragPosLightSpace, normal, light); 
 
@@ -145,21 +152,21 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConser
 }
 
 // calculates the color when using a point light.
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords)
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (light.position - fragPos));
+    vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // attenuation
-    float distance = length(frag_in.TBN * (light.position - fragPos));
+    float distance = length((light.position - fragPos));
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, texCoords));
+    vec3 ambient = light.ambient * material.color;
+    vec3 diffuse = light.diffuse * diff * material.color;
+    vec3 specular = light.specular * spec * material.color;
     ambient *= attenuation;
     diffuse *= attenuation;
     specular *= attenuation;
@@ -169,25 +176,25 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
 }
 
 // calculates the color when using a flash light.
-vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords)
+vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (light.position - fragPos));
+    vec3 lightDir = normalize(light.position - fragPos);
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // attenuation
-    float distance = length(frag_in.TBN * (light.position - fragPos));
+    float distance = length((light.position - fragPos));
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // flashlight intensity
-    float theta = dot(lightDir, normalize(frag_in.TBN * (-light.direction))); 
+    float theta = dot(lightDir, normalize((-light.direction))); 
     float epsilon = light.cutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     // combine results
-    vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 diffuse = light.diffuse * diff * vec3(texture(material.texture_diffuse1, texCoords));
-    vec3 specular = light.specular * spec * vec3(texture(material.texture_specular1, texCoords));
+    vec3 ambient = light.ambient * material.color;
+    vec3 diffuse = light.diffuse * diff * material.color;
+    vec3 specular = light.specular * spec * material.color;
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
@@ -207,7 +214,7 @@ float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light)
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // calculate bias (based on depth map resolution and slope)
-    vec3 lightDir = normalize(frag_in.TBN * (-light.direction));
+    vec3 lightDir = normalize(-light.direction);
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
@@ -234,14 +241,14 @@ float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light)
 float PointShadowCalculation(vec3 fragPos, PointLight light)
 {
     // get vector between fragment position and light position
-    vec3 fragToLight = frag_in.TBN * (fragPos - light.position);
+    vec3 fragToLight = fragPos - light.position;
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length(frag_in.TBN * (viewPos - fragPos));
+    float viewDistance = length(viewPos - fragPos);
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
@@ -261,14 +268,14 @@ float PointShadowCalculation(vec3 fragPos, PointLight light)
 float FlashShadowCalculation(vec3 fragPos, FlashLight light)
 {
     // get vector between fragment position and light position
-    vec3 fragToLight = frag_in.TBN * (fragPos - light.position);
+    vec3 fragToLight = fragPos - light.position;
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length(frag_in.TBN * (viewPos - fragPos));
+    float viewDistance = length((viewPos - fragPos));
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {

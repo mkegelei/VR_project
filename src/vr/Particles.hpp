@@ -37,7 +37,7 @@ public:
 
     // Vertices
     glBindBuffer(GL_ARRAY_BUFFER, verticesVBO);
-    glBufferData(GL_ARRAY_BUFFER, 12*sizeof(float), vertexData, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 12*sizeof(float), vertexData, GL_STREAM_DRAW);
 
     // Position + color
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
