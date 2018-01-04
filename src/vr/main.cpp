@@ -70,6 +70,10 @@ Camera camera(glm::vec3(0.0f, 4.0f, 8.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+bool switchView = false;
+bool switchViewKeyPressed = false;
+bool autofocus = true;
+bool autofocusKeyPressed = false;
 
 // timing
 float deltaTime = 0.0f;
@@ -462,6 +466,10 @@ int main(int argc, char *argv[])
     
         model1 = glm::scale(model1, glm::vec3(0.05f, 0.05f, 0.05f)); // it's a bit too big for our scene, so scale it down        
         spaceship.model = model1;
+        
+        // Update view if following the spaceship
+        if(switchView)
+            camera.autopilot(modelPos, trajectoryTangent, trajectoryBinormal, autofocus);
 
         model2 = glm::mat4();
         model2 = glm::rotate(model2, float(glfwGetTime())/4.0f, glm::vec3(0.0f, 1.0f, 0.0f));
@@ -503,13 +511,16 @@ int main(int argc, char *argv[])
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        // render the loaded model
+        
+        // render the spaceship if not in cockpit view
+        if(!switchView)
+        {
+            setShaderUniforms(spaceshipShader, projection, view, spaceship.model, camera.Position, far_plane, 16.0f);
 
-        setShaderUniforms(spaceshipShader, projection, view, spaceship.model, camera.Position, far_plane, 16.0f);
-
-        glEnable(GL_CULL_FACE);
-        spaceship.DrawWithShadow(spaceshipShader, dirLight, pointLights, flashLights, skybox);
-        glDisable(GL_CULL_FACE);
+            glEnable(GL_CULL_FACE);
+            spaceship.DrawWithShadow(spaceshipShader, dirLight, pointLights, flashLights, skybox);
+            glDisable(GL_CULL_FACE);
+        }
 
         // Draw asteroid
         // -------------
@@ -844,6 +855,26 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_O) == GLFW_RELEASE)
     {
         asteroidKeyPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS && !switchViewKeyPressed)
+    {
+        switchView = !switchView;
+        switchViewKeyPressed = true;
+        if(switchView == false)
+            camera.reset();
+    }
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE)
+    {
+        switchViewKeyPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS && !autofocusKeyPressed)
+    {
+        autofocus = !autofocus;
+        autofocusKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_V) == GLFW_RELEASE)
+    {
+        autofocusKeyPressed = false;
     }
 
 }
