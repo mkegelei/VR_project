@@ -68,7 +68,7 @@ uniform bool refraction;
 uniform float worldRefraction;
 uniform sampler2D dirShadowMap; 
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 #define NR_FLASH_LIGHTS 2
 
 uniform vec3 viewPos;
@@ -269,14 +269,14 @@ float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light)
 float PointShadowCalculation(vec3 fragPos, PointLight light)
 {
     // get vector between fragment position and light position
-    vec3 fragToLight = frag_in.TBN * (fragPos - light.position);
+    vec3 fragToLight = (fragPos - light.position);
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length(frag_in.TBN * (viewPos - fragPos));
+    float viewDistance = length((viewPos - fragPos));
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
@@ -296,14 +296,14 @@ float PointShadowCalculation(vec3 fragPos, PointLight light)
 float FlashShadowCalculation(vec3 fragPos, FlashLight light)
 {
     // get vector between fragment position and light position
-    vec3 fragToLight = frag_in.TBN * (fragPos - light.position);
+    vec3 fragToLight = (fragPos - light.position);
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length(frag_in.TBN * (viewPos - fragPos));
+    float viewDistance = length((viewPos - fragPos));
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {

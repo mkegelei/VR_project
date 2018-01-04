@@ -68,7 +68,7 @@ uniform bool refraction;
 uniform float worldRefraction;
 uniform sampler2D dirShadowMap; 
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 #define NR_FLASH_LIGHTS 2
 
 uniform vec3 viewPos;

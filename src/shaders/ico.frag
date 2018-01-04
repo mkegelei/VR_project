@@ -56,7 +56,7 @@ uniform float far_plane;
 uniform sampler2D dirShadowMap; 
 uniform mat4 lightSpaceMatrix;
 
-#define NR_POINT_LIGHTS 1
+#define NR_POINT_LIGHTS 4
 #define NR_FLASH_LIGHTS 2
 
 uniform vec3 viewPos;
@@ -119,16 +119,16 @@ void main()
     float d2 = min(min(gPatchDistance.x, gPatchDistance.y), gPatchDistance.z);
     result = amplify(d1, 40, -0.5) * amplify(d2, 60, -0.5) * result;
 
-    FragColor = vec4(result, 0.2);
+    FragColor = vec4(result, 0.20);
     float gamma = 1.0;
     FragColor.rgb = pow(FragColor.rgb, vec3(1.0/gamma));
-    if(FragColor.b < 0.1)
+    if(FragColor.r < 0.05 && FragColor.g < 0.05 && FragColor.b < 0.05)
         FragColor = vec4(result, 1.0);
     
     // check whether result is higher than some threshold, if so, output as bloom threshold color
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
     BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
-    if(brightness > 0.0)
+    if(brightness > 0.05)
         BrightColor = vec4(result, 1.0); 
 }
 

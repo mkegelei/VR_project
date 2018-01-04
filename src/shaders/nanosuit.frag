@@ -4,10 +4,12 @@ layout (location = 1) out vec4 BrightColor;
 
 struct Material {
     sampler2D texture_diffuse1;
-    sampler2D texture_specular1; 
+    sampler2D texture_specular1;    
     sampler2D texture_normal1;
-    sampler2D texture_emission1;   
+    sampler2D texture_height1;
+    sampler2D texture_reflection1;
     float shininess;
+    float refraction;
 }; 
 
 struct DirLight {
@@ -54,10 +56,14 @@ in VERT_OUT {
     vec3 Normal;
     vec2 TexCoords;
     vec4 FragPosLightSpace;
-    mat3 TBN;
 } frag_in;
 
 uniform float far_plane;
+uniform float heightScale;
+uniform bool parallax;
+uniform bool reflection;
+uniform bool refraction;
+uniform float worldRefraction;
 uniform sampler2D dirShadowMap; 
 
 #define NR_POINT_LIGHTS 4
@@ -68,6 +74,7 @@ uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform FlashLight flashLights[NR_FLASH_LIGHTS];
 uniform Material material;
+uniform samplerCube skybox;
 
 // array of offset direction for sampling
 vec3 gridSamplingDisk[20] = vec3[]
@@ -86,22 +93,26 @@ vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
 float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light);
 float PointShadowCalculation(vec3 fragPos, PointLight light);
 float FlashShadowCalculation(vec3 fragPos, FlashLight light);
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir);
 
 void main()
 {
     const float kPi = 3.14159265;
 
     // properties
-    vec3 viewDir = normalize(frag_in.TBN * (viewPos - frag_in.FragPos));
+    vec3 viewDir = normalize( (viewPos - frag_in.FragPos));
 
     vec2 texCoords = frag_in.TexCoords;
+    if(parallax)
+    {
+        texCoords = ParallaxMapping(frag_in.TexCoords, viewDir);       
+        if(texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
+            discard;
+    }
 
     // obtain normal from normal map in range [0,1]
-    //vec3 norm = normalize(frag_in.Normal);
-    vec3 norm = texture(material.texture_normal1, texCoords).rgb;
-    // transform normal vector to range [-1,1]
-    norm = normalize(norm * 2.0 - 1.0);  // this normal is in tangent space
-
+    vec3 norm = normalize(frag_in.Normal);
+    
     float kEnergyConservation = ( 8.0 + material.shininess ) / ( 8.0 * kPi ); 
     
     // phase 1: directional lighting
@@ -113,9 +124,21 @@ void main()
     // phase 3: flash light
     for(int j = 0; j < NR_FLASH_LIGHTS; j++)
         result += CalcFlashLight(flashLights[j], norm, frag_in.FragPos, viewDir, kEnergyConservation, texCoords);
+    
+    if(reflection)
+    {
+        vec3 I = normalize((frag_in.FragPos - viewPos));
+        vec3 R = reflect(I, norm);
+        result += texture(skybox, R).rgb * vec3(texture(material.texture_reflection1, texCoords));
+    }
 
-    vec3 emission = texture(material.texture_emission1, texCoords).rgb;
-    result += emission;
+    if(refraction)
+    {
+        float ratio = worldRefraction / material.refraction;
+        vec3 I = normalize((frag_in.FragPos - viewPos));
+        vec3 R = refract(I, norm, ratio);
+        result += texture(skybox, R).rgb;
+    }
 
     FragColor = vec4(result, 1.0);
     float gamma = 1.0;
@@ -132,7 +155,7 @@ void main()
 // calculates the color when using a directional light.
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConservation, vec4 fragPosLightSpace, vec2 texCoords)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (-light.direction));
+    vec3 lightDir = normalize( (-light.direction));
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
@@ -151,14 +174,14 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float kEnergyConser
 // calculates the color when using a point light.
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (light.position - fragPos));
+    vec3 lightDir = normalize( (light.position - fragPos));
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // attenuation
-    float distance = length(frag_in.TBN * (light.position - fragPos));
+    float distance = length( (light.position - fragPos));
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // combine results
     vec3 ambient = light.ambient * vec3(texture(material.texture_diffuse1, texCoords));
@@ -175,17 +198,17 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
 // calculates the color when using a flash light.
 vec3 CalcFlashLight(FlashLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float kEnergyConservation, vec2 texCoords)
 {
-    vec3 lightDir = normalize(frag_in.TBN * (light.position - fragPos));
+    vec3 lightDir = normalize( (light.position - fragPos));
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     float spec = kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     // attenuation
-    float distance = length(frag_in.TBN * (light.position - fragPos));
+    float distance = length( (light.position - fragPos));
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
     // flashlight intensity
-    float theta = dot(lightDir, normalize(frag_in.TBN * (-light.direction))); 
+    float theta = dot(lightDir, normalize( (-light.direction))); 
     float epsilon = light.cutOff - light.outerCutOff;
     float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
     // combine results
@@ -211,7 +234,7 @@ float DirShadowCalculation(vec4 fragPosLightSpace, vec3 normal, DirLight light)
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // calculate bias (based on depth map resolution and slope)
-    vec3 lightDir = normalize(frag_in.TBN * (-light.direction));
+    vec3 lightDir = normalize( (-light.direction));
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     // check whether current frag pos is in shadow
     // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
@@ -265,14 +288,14 @@ float PointShadowCalculation(vec3 fragPos, PointLight light)
 float FlashShadowCalculation(vec3 fragPos, FlashLight light)
 {
     // get vector between fragment position and light position
-    vec3 fragToLight = (fragPos - light.position);
+    vec3 fragToLight =  (fragPos - light.position);
     // now get current linear depth as the length between the fragment and light position
     float currentDepth = length(fragToLight);
     
     float shadow = 0.0;
     float bias = 0.15;
     int samples = 20;
-    float viewDistance = length((viewPos - fragPos));
+    float viewDistance = length( (viewPos - fragPos));
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;
     for(int i = 0; i < samples; ++i)
     {
@@ -287,4 +310,46 @@ float FlashShadowCalculation(vec3 fragPos, FlashLight light)
     // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);    
         
     return shadow;
+}
+
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
+{ 
+    // number of depth layers
+    const float minLayers = 8;
+    const float maxLayers = 32;
+    float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy / viewDir.z * heightScale; 
+    vec2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    vec2  currentTexCoords     = texCoords;
+    float currentDepthMapValue = texture(material.texture_height1, currentTexCoords).r;
+      
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(material.texture_height1, currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;  
+    }
+    
+    // get texture coordinates before collision (reverse operations)
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(material.texture_height1, prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+    return finalTexCoords;
 }

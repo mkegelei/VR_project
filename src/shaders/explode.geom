@@ -7,6 +7,7 @@ in VERT_OUT {
     vec3 normal;
     vec2 texCoords;
     vec4 fragPosLightSpace;
+    mat3 TBN;
 } geom_in[];
 
 out GEOM_OUT {
@@ -14,6 +15,7 @@ out GEOM_OUT {
     vec3 Normal;
     vec2 TexCoords;
     vec4 FragPosLightSpace;
+    mat3 gTBN;
 } geom_out;
 
 uniform float time;
@@ -40,18 +42,21 @@ void main() {
     geom_out.Normal = geom_in[0].normal;
     geom_out.TexCoords = geom_in[0].texCoords;
     geom_out.FragPosLightSpace = geom_in[0].fragPosLightSpace;
+    geom_out.gTBN = geom_in[0].TBN;
     EmitVertex();
     gl_Position = projection * explode(gl_in[1].gl_Position, norm);
     geom_out.FragPos = explode(geom_in[1].fragPos, norm).xyz;
     geom_out.Normal = geom_in[1].normal;
     geom_out.TexCoords = geom_in[1].texCoords;
     geom_out.FragPosLightSpace = geom_in[1].fragPosLightSpace;
+    geom_out.gTBN = geom_in[1].TBN;
     EmitVertex();
     gl_Position = projection * explode(gl_in[2].gl_Position, norm);
     geom_out.FragPos = explode(geom_in[2].fragPos, norm).xyz;
     geom_out.Normal = geom_in[2].normal;
     geom_out.TexCoords = geom_in[2].texCoords;
     geom_out.FragPosLightSpace = geom_in[2].fragPosLightSpace;
+    geom_out.gTBN = geom_in[2].TBN;
     EmitVertex();
     EndPrimitive();
 }

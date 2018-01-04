@@ -60,13 +60,15 @@ bool bloomKeyPressed = false;
 bool btn = false;
 bool btnKeyPressed = false;
 float exposure = 1.0f;
-bool showParticles = true;
+bool showParticles = false;
 bool particlesKeyPressed = false;
 bool asteroidRot = true;
 bool asteroidKeyPressed = false;
+bool explosion = false;
+bool explosionKeyPressed;
 
 // camera
-Camera camera(glm::vec3(0.0f, 4.0f, 8.0f));
+Camera camera(glm::vec3(0.0f, 6.0f, 12.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -80,7 +82,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-Camera lightPos(glm::vec3(1.2f, 1.0f, 2.0f));
+Camera lightPos(glm::vec3(-3.13f, 0.8f, 3.87f));
 glm::vec3 circuitPos = glm::vec3(0.0f, 0.0f, 0.0f);
 //std::vector<DirLight> dirLights;
 DirLight* dirLight;
@@ -94,6 +96,7 @@ Model spaceship;
 Model asteroid;
 Model rock;
 Model floorObj;
+Model nanosuit;
 glm::mat4 model2; //can't be stored in asteroid.model for some obscure reason
 
 int main(int argc, char *argv[])
@@ -162,6 +165,7 @@ int main(int argc, char *argv[])
     Shader containerShader = createShader("container.vert", "container.frag");
     Shader explodeShader = createShader("explode.vert", "explode.frag", "explode.geom");
     Shader icoShader = createShader("ico.vert", "ico.frag", "ico.geom", "ico.tesc", "ico.tese");
+    Shader nanosuitShader = createShader("nanosuit.vert", "nanosuit.frag");
 
     Shader skyboxShader = createShader("skybox.vert", "skybox.frag");
     skyboxShader.use();
@@ -200,10 +204,19 @@ int main(int argc, char *argv[])
     spaceship.addTexture("s_1024_S.tga", "texture_specular");
     spaceship.addTexture("s_1024_I.tga", "texture_emission");
 
+    ss.str("");
+    ss << dir << "resources/objects/" << "nanosuit/nanosuit.obj";
+    nanosuit = *(new Model(ss.str()));
+
 
     ss.str("");
-    ss << dir << "resources/objects/" << "floor.obj";
+    ss << dir << "resources/objects/" << "floor/floor.obj";
     floorObj = *(new Model(ss.str()));
+    floorObj.addTexture("Sci-Fi-Floor-Diffuse.tga", "texture_Diffuse");
+    floorObj.addTexture("Sci-Fi-Floor-Specular.tga", "texture_specular");
+    floorObj.addTexture("Sci-Fi-Floor-Emissive.tga", "texture_emission");
+    floorObj.addTexture("Sci-Fi-Floor-Normal.tga", "texture_normal");
+
     // Rocks
     // -----
     ss.str("");
@@ -295,15 +308,6 @@ int main(int argc, char *argv[])
 
     // load additionnal textures
     // -------------------------
-    /*ss.str("");
-    ss << dir << "resources/textures/wood.png";
-    unsigned int woodTexture = loadTexture(ss.str().c_str());
-    ss.str("");
-    ss << dir << "resources/textures/brickwall.jpg";
-    unsigned int brickwallTexture = loadTexture(ss.str().c_str());
-    ss.str("");
-    ss << dir << "resources/textures/brickwall_normal.jpg";
-    unsigned int brickwallNormalTexture = loadTexture(ss.str().c_str());*/
     ss.str("");
     ss << dir << "resources/textures/Floor/Floor_DIFF.tga";
     unsigned int floorDiffTexture = loadTexture(ss.str().c_str());
@@ -329,11 +333,21 @@ int main(int argc, char *argv[])
     ss << dir << "resources/textures/container2_specular.png";
     unsigned int containerSpecTexture = loadTexture(ss.str().c_str());
     ss.str("");
-    ss << dir << "resources/textures/bricks2.jpg";
-    unsigned int blockTexture = loadTexture(ss.str().c_str());
-    ss.str("");
     ss << dir << "resources/textures/rock.png";
     unsigned int rockTexture = loadTexture(ss.str().c_str());
+
+
+    // data for ico
+    vector<glm::vec3> icoColors = {
+        glm::vec3(1.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 1.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 1.0f)
+    };
+    vector<glm::vec3> icoPos = {
+        glm::vec3(12.0f, -4.0f, -3.0f),
+        glm::vec3(15.0f, -6.0f, 3.0f),
+        glm::vec3(18.0f, -6.0f, -3.0f)
+    };
 
     // Lights
     // ------
@@ -347,6 +361,21 @@ int main(int argc, char *argv[])
         near_plane, far_plane,
         1.0f, 0.09f, 0.032f);
     pointLights.push_back(pointLight);
+    PointLight* pointLight2 = new PointLight(1, depthCubeShader, glm::vec3(-2.0f, -7.0f, 1.0f),
+        glm::vec3(0.1f, 0.0f, 0.0f), glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(1.8f, 0.0f, 0.0f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f);
+    pointLights.push_back(pointLight2);
+    PointLight* pointLight3 = new PointLight(2, depthCubeShader, icoPos[1],
+        glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(1.5f, 1.5f, 1.5f), glm::vec3(1.8f, 1.8f, 1.8f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f);
+    pointLights.push_back(pointLight3);
+    PointLight* pointLight4 = new PointLight(3, depthCubeShader, icoPos[2],
+        glm::vec3(0.0f, 0.0f, 0.1f), glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 1.8f),
+        near_plane, far_plane,
+        1.0f, 0.09f, 0.032f);
+    pointLights.push_back(pointLight4);
 
     FlashLight* flashLight = new FlashLight(0, depthCubeShader, &camera,
         glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.6f, 1.6f, 1.6f), glm::vec3(1.6f, 1.6f, 1.6f),
@@ -354,12 +383,14 @@ int main(int argc, char *argv[])
         1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight);
-    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-1.2f, 1.0f, 2.0f), glm::vec3(1.2f, -1.0f, -2.0f),
-        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.2f, 1.2f, 1.2f), glm::vec3(1.2f, 1.2f, 1.2f),
+    FlashLight* flashLight2 = new FlashLight(1, depthCubeShader, glm::vec3(-3.5f, -6.8f, -1.0f), glm::vec3(1.0f, -0.2f, 0.2f),
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(2.0f, 6.0f, 0.0f), glm::vec3(1.0f, 3.0f, 0.0f),
         near_plane, far_plane,
         1.0f, 0.09f, 0.032f,
         glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
     flashLights.push_back(flashLight2);
+
+
 
     // configure floating point framebuffer
     // ------------------------------------
@@ -438,6 +469,17 @@ int main(int argc, char *argv[])
         // ------
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // sort the transparent ico before rendering
+        // ---------------------------------------------
+        std::map<float, glm::vec3> sorted;
+        std::map<float, glm::vec3> sortedColor;
+        for (unsigned int i = 0; i < icoPos.size(); i++)
+        {
+            float distance = glm::length(camera.Position - icoPos[i]);
+            sorted[distance] = icoPos[i];
+            sortedColor[distance] = icoColors[i];
+        }
 
         // Calculate model position
         glm::mat4 model1;
@@ -522,9 +564,19 @@ int main(int argc, char *argv[])
             glDisable(GL_CULL_FACE);
         }
 
+        // Draw nanosuit
+        glm::mat4 model;
+        model = glm::translate(model, glm::vec3(-2.0f, 2.4f, 5.0f));
+        model = glm::scale(model, glm::vec3(0.15f, 0.15f, 0.15f));
+        setShaderUniforms(nanosuitShader, projection, view, model, camera.Position, far_plane, 16.0f, heightScale, false, true);
+
+        glEnable(GL_CULL_FACE);
+        nanosuit.DrawWithShadow(nanosuitShader, dirLight, pointLights, flashLights, skybox);
+        glDisable(GL_CULL_FACE);
+
         // Draw asteroid
         // -------------
-        glm::mat4 model;
+        
         setShaderUniforms(asteroidShader, projection, view, model2, camera.Position, far_plane, 2.0f);
         asteroid.DrawAsteroid(asteroidShader, dirLight, pointLights, flashLights, asteroidDiff, asteroidSpec, asteroidNorm, asteroidDisp, asteroidEmis,skybox);
 
@@ -584,58 +636,71 @@ int main(int argc, char *argv[])
             glBindVertexArray(0);
         }
 
-        // Draw brickwall
+        // Draw toybox
         // --------------
 
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(3.0f, 0.5f, -2.0f));
+        model = glm::translate(model, glm::vec3(-2.49f, -7.08f, 0.38f));
+        model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
         setShaderUniforms(modelShader, projection, view, model, camera.Position, far_plane, 2.0f, heightScale, true);
         setTextures(modelShader, skybox, toyboxTexture, toyboxTexture, toyboxNormalTexture, toyboxDispTexture);
         renderQuad();
-
-        // Draw ico
-        // --------
         model = glm::mat4();
-        setShaderUniforms(icoShader, projection, view, model, camera.Position, far_plane, 6.0f);
-        setTextures(icoShader, skybox);
-        icoShader.use();
-        icoShader.setVec3("material.color", glm::vec3(0.0f, 0.0f, 1.0f));
-        icoShader.setFloat("TessLevelInner", 4.0f);
-        icoShader.setFloat("TessLevelOuter", 4.0f);
-        renderIco();
+        model = glm::translate(model, glm::vec3(-2.5f, -7.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
+        setShaderUniforms(explodeShader, projection, view, model, camera.Position, far_plane, 2.0f);
+        setTextures(explodeShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
+        explodeShader.use();
+        explodeShader.setFloat("time", -M_PI/10.0f);
+        floorObj.DrawForDepth();
+
 
         // Draw matrix cube
         // ----------------
 
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+        model = glm::translate(model, glm::vec3(-4.5f, 1.2f, 5.0f));
         setShaderUniforms(containerShader, projection, view, model, camera.Position, far_plane, 5.0f);
         setTextures(containerShader, skybox, containerSpecTexture, containerSpecTexture, 0, 0, 0, matrixEmissionTexture);
         containerShader.use();
         containerShader.setFloat("time", glfwGetTime());
         renderCube();
-
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(-4.0f, 3.2f, 5.0f));
+        setShaderUniforms(containerShader, projection, view, model, camera.Position, far_plane, 5.0f);
+        renderCube();
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(-2.0f, 1.2f, 5.0f));
+        setShaderUniforms(containerShader, projection, view, model, camera.Position, far_plane, 5.0f);
+        renderCube();
+        
         // Draw exploding container
         // ------------------------
-        /*model = glm::mat4();
-        model = glm::translate(model, glm::vec3(-0.5f, 2.0f, -8.0f));
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(-1.0f, -7.0f, -1.0f));
+        model = glm::scale(model, glm::vec3(0.3f, 0.3, 0.3f));
         setShaderUniforms(explodeShader, projection, view, model, camera.Position, far_plane, 2.0f);
-        setTextures(explodeShader, skybox, blockTexture, blockTexture);
+        setTextures(explodeShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
         explodeShader.use();
-        explodeShader.setFloat("time", glfwGetTime());
-        renderCube();*/
+        explodeShader.setFloat("time", -M_PI/10.0f);
+        if(explosion)
+            explodeShader.setFloat("time", glfwGetTime());
+        floorObj.DrawForDepth();
 
-        // Draw floor
+        // Draw floors
         // ----------
 
         model = glm::mat4();
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, -2.0f));
-        model = glm::scale(model, glm::vec3(5.0f, 0.15f, 5.0f));
+        model = glm::translate(model, glm::vec3(-3.0f, 0.0f, 3.2f));
+        model = glm::scale(model, glm::vec3(3.0f, 0.15f, 3.0f));
         setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
-        setTextures(floorShader, skybox, floorDiffTexture, floorSpecTexture, floorNormTexture);
-        //renderFloor();
-        floorObj.DrawForDepth();
-
+        floorObj.DrawWithShadow(floorShader, dirLight, pointLights, flashLights, skybox);
+        model = glm::mat4();
+        model = glm::translate(model, glm::vec3(-2.0f, -7.5f, -1.0f));
+        model = glm::scale(model, glm::vec3(3.0f, 0.15f, 3.0f));
+        setShaderUniforms(floorShader, projection, view, model, camera.Position, far_plane, 12.0f);
+        floorObj.DrawWithShadow(floorShader, dirLight, pointLights, flashLights, skybox);
+        
         // Particles
         // -------
         if(showParticles)
@@ -684,6 +749,37 @@ int main(int argc, char *argv[])
         lampShader.setMat4("model", model);
         lampShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
         renderCube();
+        model = glm::mat4();
+        model = glm::translate(model, pointLights[1]->position);
+        model = glm::scale(model, glm::vec3(0.05f)); // a smaller cube
+        lampShader.setMat4("model", model);
+        renderCube();
+
+        // Draw ico
+        // --------
+        
+        model = glm::mat4();
+        model = glm::translate(model,  glm::vec3(-2.5f, -6.8f, -1.0f));
+        model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
+        setShaderUniforms(icoShader, projection, view, model, camera.Position, far_plane, 6.0f);
+        setTextures(icoShader, skybox);
+        icoShader.use();
+        icoShader.setVec3("material.color", glm::vec3(0.3f, 1.0f, 0.0f));
+        icoShader.setFloat("TessLevelInner", 4.0f);
+        icoShader.setFloat("TessLevelOuter", 4.0f);
+        renderIco();
+        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+        {
+            model = glm::mat4();
+            model = glm::translate(model, it->second);
+            setShaderUniforms(icoShader, projection, view, model, camera.Position, far_plane, 6.0f);
+            setTextures(icoShader, skybox);
+            icoShader.use();
+            icoShader.setVec3("material.color", sortedColor[it->first]);
+            icoShader.setFloat("TessLevelInner", 4.0f);
+            icoShader.setFloat("TessLevelOuter", 4.0f);
+            renderIco();
+        }
 
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -875,6 +971,15 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_V) == GLFW_RELEASE)
     {
         autofocusKeyPressed = false;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !explosionKeyPressed)
+    {
+        explosion = !explosion;
+        explosionKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+    {
+        explosionKeyPressed = false;
     }
 
 }
@@ -1215,27 +1320,42 @@ void renderDepthMap(FlashLight* light)
 void renderSceneForDepth(Shader shader)
 {
     glm::mat4 model;
-    //shader.use();
     shader.setMat4("model", spaceship.model);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     spaceship.DrawForDepth();
     model = glm::mat4();
-    model = glm::translate(model, glm::vec3(0.0f, -1.0f, -2.0f));
-    model = glm::scale(model, glm::vec3(5.0f, 0.15f, 5.0f));
+    model = glm::translate(model, glm::vec3(-3.0f, 0.0f, 3.2f));
+    model = glm::scale(model, glm::vec3(3.0f, 0.15f, 3.0f));
     shader.setMat4("model", model);
     floorObj.DrawForDepth();
     glCullFace(GL_BACK);
     glDisable(GL_CULL_FACE);
-    //renderFloor();
     model = glm::mat4();
-    model = glm::translate(model, glm::vec3(3.0f, 0.0f, -2.0f));
+    model = glm::translate(model, glm::vec3(-2.5f, -7.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(0.3f, 0.3f, 0.3f));
     shader.setMat4("model", model);
-    renderQuad();
+    floorObj.DrawForDepth();
     model = glm::mat4();
-    model = glm::translate(model, glm::vec3(-3.0f, 0.5f, 1.0f));
+    model = glm::translate(model, glm::vec3(-1.0f, -7.0f, -1.0f));
+    model = glm::scale(model, glm::vec3(0.3f, 0.3, 0.3f));
+    shader.setMat4("model", model);
+    floorObj.DrawForDepth();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(-4.5f, 1.2f, 5.0f));
     shader.setMat4("model", model);
     renderCube();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(-4.0f, 3.2f, 5.0f));
+    shader.setMat4("model", model);
+    renderCube();
+    model = glm::mat4();
+    model = glm::translate(model, glm::vec3(-2.0f, 1.2f, 5.0f));
+    shader.setMat4("model", model);
+    renderCube();
+    model = glm::translate(model, glm::vec3(-2.0f, 2.4f, 5.0f));
+    model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+    nanosuit.DrawForDepth();
 }
 
 unsigned int skyboxVAO = 0;
